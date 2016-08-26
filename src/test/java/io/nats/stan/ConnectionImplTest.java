@@ -265,7 +265,8 @@ public class ConnectionImplTest {
             conn.setPubAckChan(pac);
             assertEquals(conn.getPubAckChan(), pac);
 
-            Map<String, AckClosure> mockMap = mock(Map.class);
+            @SuppressWarnings("unchecked")
+            Map<String, AckClosure> mockMap = (Map<String, AckClosure>) mock(Map.class);
             conn.setPubAckMap(mockMap);
             assertEquals(mockMap, conn.getPubAckMap());
         } catch (Exception e) {

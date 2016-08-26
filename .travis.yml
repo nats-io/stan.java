@@ -1,34 +1,44 @@
-before_install:
-- export GOPATH=$HOME/gopath
-- eval "$(GIMME_GO_VERSION=1.6 gimme)"
-- export PATH=$PATH:$GOPATH/bin
-- export JAVA_OPTS=-Xmx2g
-- openssl aes-256-cbc -pass pass:$ENCRYPTION_PASSWORD -in $GPG_DIR/pubring.gpg.enc
-  -out $GPG_DIR/pubring.gpg -d
-- openssl aes-256-cbc -pass pass:$ENCRYPTION_PASSWORD -in $GPG_DIR/secring.gpg.enc
-  -out $GPG_DIR/secring.gpg -d
-install:
-- go get github.com/nats-io/nats-streaming-server
-- sudo apt-get update
-- sudo apt-get install -y gnupg2
 language: java
 jdk:
 - oraclejdk8
+before_install:
+- wget https://github.com/nats-io/nats-streaming-server/releases/download/v0.2.2/nats-streaming-server-linux-amd64.zip -q
+- export PATH=$PATH:${TRAVIS_BUILD_DIR}/nats-streaming-server-linux-amd64
+- echo "MAVEN_OPTS='-Xmx2g -XX:+TieredCompilation -XX:TieredStopAtLevel=1'" > ~/.mavenrc
+install:
+#- sudo apt-get -qq update
+- sudo apt-get install -y gnupg2
+script:
+- mvn --settings .travis/settings.xml clean verify -U
+after_success:
+- mvn --settings .travis/settings.xml coveralls:report
+before_deploy:
+- echo "decrypting keyrings"
+- openssl aes-256-cbc -K $encrypted_ddc2c9dfa8f8_key -iv $encrypted_ddc2c9dfa8f8_iv
+  -in .travis/keyrings/secrets.tar.enc -out .travis/keyrings/secrets.tar -d
+- cd .travis/keyrings && tar xvf secrets.tar
+- cd ${TRAVIS_BUILD_DIR}
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: ".travis/deploy.sh"
+  on:
+    repo: nats-io/java-nats-streaming
+    branch: master
+    jdk: oraclejdk8
+- provider: script
+  skip_cleanup: true
+  script: ".travis/deploy.sh"
+  on:
+    repo: nats-io/java-nats-streaming
+    tags: true
+    jdk: oraclejdk8
 cache:
   directories:
   - "$HOME/.m2"
-after_success:    
-  - mvn jacoco:report coveralls:jacoco
 notifications:
   email:
   - larry@apcera.com
 env:
   global:
-  - GPG_DIR=${TRAVIS_BUILD_DIR}/keyrings
-  - secure: Ws8iS/Hww5AOtNzJHoOzZfSeaGhEULe41ExaY0v9Ib32gqsrY7lEBRZFx1k/8ABQ2z3LNAv5u9xHpFuU6dcudrtuB/SSsb49j3217VUSXZaEfHy4Gib65QE/gXXZLmJQrbwesP9LzqSL+x7g+Xz79vb6BSpg0bX7dBh3tqSj0mg+2Gs5MJStctS8McZGDTttY/TazX7cVgZyO0X36LcBhKRUtGH1zs6Ve2Pg9i15eLXyLYbUUMtYIPxjtYlZ/nDiCidX+LuSnUo8KtY/n8iJBYoLXzmh/MxlC5PAfg0vxoRr/i9BwxOJNkJ12i8BXRZvTcrIymE6HeO9C3rC1V33UG80x0dmeR1UCtlvM1KOVZXeCrBqpXKqZ4WcqVjmf1Tatf+MM0p1Rmv1Hfq8hWUqyy06BJhnGciixCRx7OLJ2iFPZjts6LtteMm9DswnEze2abu562S2dwb41IEuxsDsWS2pFCUv1zDt2bQYYQ5voU5gZnm68dH1Fa7vjr1AxEcmRKiYqJ5LKT2kigGczsmGMoQdLViUawYl6YO27sjxlFobFnxKbgHzliiUdEPMB58TvBoi4U33suXr6kLmbdAchfR6K1NwVJkox4VtdqByGviv3BNilU6yGTOqJLN95BZubGFKUDJZtsP//QPSmh7GGSoohiR9cOVPZb2Key3HY1c=
-  - secure: Djll3Hq0GfBK9WonzvS1LTQdfmlFbZiWhM5EFlInfh9X8K7zIQrwDLyEuaqaG/CU4Cd9/Kh859gQHPjG4MhlXTKjWzCpCtQ4ZPyCDZ6CQbkaHZTO89Ntunn6KjY9VPLbVpz/5RT08S9zcHhEzaM3J9BLL1/oTMOhBRDY37QmufqVB52IL+3y7BSXl7N8GacFtWpHLLEiOle9SxpFdFtBhCq3zA1yxb/WOza3ozoyyym7gKY3OpWj7xbEvpsMNXVkfPohXZQLzaRRkjdTFdmO4Fu7GuzGrLs2L5dDJg5trfl+F8t/kvS6jPhA2mt4qwDNZS5WIAg7svyxu5+Vh5D42Mu0sTarOJjsS1i7GmxKQhS8r0tcfgkz3urEVWTH+w9ggUT/RQRUh8vyJQtQFwuuacCIjPAjgsCLPWPTz7tUq+pkjqsu6Ad/mkuB85fj07pRmJYAmXAMu2POjdgXmcVDesrZts3Lci/bWFWxsi7D7zBWK2mM830/xop/OmHzDjeN8+19HnlYlRD4tMyuE9QfDN/Ceiytyvm4xtGL6iWPudTi5fEzO77K05QaKarF2juUTkVLa/gyWWFgG3jx/e+rIhmGvBCz8bz75dYElO+KiVRfSsa9m+1xo/qXe0CRg05QrC9uhR4hQVADRkBs6rny3Or6AvtN1H+L29iRND7jJ60=
-  - secure: fu39UNU3kcU/d/VR2M3tfzDk+N+nLJ5R+keTgkBQT/hbh78hj/Es2i4RYwSV+srHsBbYObPO8Cp6tR2PejV5IJDxJKtcaWvoLj38795mtHH6gWXT4YD57eL5kCzexOmQon+bSMPy75VStCeaGycOJ2hATG+3lRf6zRQUT+FBWI3k/SQaTtbIW2qAkaVapO9BQFRRs/WSWaKQbBuS4M1CM/O6jqLMdUDIGXVSRjbHH7MPj6s4uoTbLIXt8cl1Osb8FTWApYtsZD96YCX0QimWI8PaFkB5ebFbJj5RFPFrBFznMbV4v3EhciSs/H9TXTdGXGgND9LOgFrW18iuFPhxHNy+bcaQX9XzpOaK9t4e3W3u4OJPmFTd2I5CSGU4+ztYqORa3Od6QszNgmHYp84L892ZByZqgQCiQAfyKYeiVqPUl0GCaSDvRxdw7RhuwMbet7VYslhv5uJWToOxHWaBabeagtMrwst1jbHExq7AestiW6ixh8awahFZPjAwO1M1yQixuRJTBQq2cAMZBt89D+QdF0ybR1J0RhdM/fMgMgCxouzANlDmvkuv3mfF8GWewGWxCFpCiYpY8uBcVm3GEcChJtIKzqpBRfYniKuI4vWrqs27re8Zf3CWD90Y8D8is0ivdqM2QjBHcY+U6jkFeiID0izy9RtBkgM8IXrmBpM=
-  - secure: xptIs1M2QzgIBkkG/NmBqdQ63AcjW72slLB0nZ8zuD1o6oik9aFrCOL2ZDYvbYzuV0HwcBGmQudOPV61na1Kw92cQPSgiK5U1x5bf7tcf8SHMcrxoOtPg1SZlQk96EZvwdK2yB1wfVkhshd52+PU5Dm/g+5wx2S+nt9NrQbow9G1TtEH3T2h4WMlADoQmlNXBv6Rp8O5+TFMg2ZsxhgFUqsCWA2XCShgesM7nnloTDAXehEa093yFqKjDlaPjxh+1n+GDDe+ZQfol9cq6YH7XOBC2+WzpL/7POVVG0tCrDFtE5KoUweErZdvs7C0YhAu1U8pDQR8aCjTFgA+TTVGXV7SgymXpCEIHlwL61UprtbgEzF7eNOrWh555Uo7SaIjlo+GG4Gk8tcIM+tX2koLIv72R1VEAnSJUH1BvqSVjm7vQ8kIR4QE+xVZYthkc4CNbEDjE/8XFd9y7gJbqvxWf1NO3jdrYhBwktL7qeJS+LDMI+9f3Axb+qZYEcORj/OHHixvqHctucgZLfcKJeaQswiTy3Cz4kUoMt+tjX3lXYu+8V5Uxm6wLDZlvy6cITMMuR7rRzPqV1k9a958iPBwSq8EwEUfNu++YKasZXSxAih5TL2S5eqlsRt6n1ZgJps3xNVlW5yZwiNML7xWnz/GogmixdflLEmZN7fCr5Cgs4A=
-  - secure: kNJeA9ZELgg8iNhrxTa82gXdV7Yi89qftZIm0tqisVu8vvDo70Jib4KA/NfAZH0WxZc1lq/Nk7iJiLi+aMDAjrUqz+uBPJNF9+M/g2Zh4FI7Q+8Q1nK5p4KCWaWx3jqH8sfUFuLGJGYfsdw0QB2wOEnqGghBZNx0LtRIKr9UDz0Fe2SnVto7tzElJCFZ5t88DwKRegsP2MZBZckX6ESC9cmk0tkNQ43ledKXE6EshZUe3CgR8KcAalIglVQqi78U3SCOeN9d7Wz2GAZSBeYV2uRR4mIbXcvwGiMT4fUZ6bzQxa0dk0MB1YzPdPNN694erODUPTjqWWFtFN0vAjIWpv9kZxASOLooIdvnhq0fTK5bIyW/UYB+VkLGOKXXlkZW46i1ivsRw7wynp6hv+VXf32JYGRkmYLkdfHnQ6cOcKmUXXAK2wEEIVHJbvbP2TlStFciXwt01091vTWKto86tudRBUWjOgABjfMcJzJuWO0s/FTgjh6/cqKEEFwp51qzxdTjJo+uB7SLPcjttZWafVbQ0y0EEm15buUtZDOf1QKqSh6RH9f2m41Zm92prL+cf4QTST/bY6vrEShIZkQUYTZJi//4/7DAA+qypb/UuMuuZeI5icnyzOZkKOsrjeDHAYp632Y9pILNFC79f134QJn2QGgDJq2nfXs+fN1Dej0=
-  - secure: FiyvIlMleLB7OBW0Pm1Io6XVWpy3RJ4qy4oE6dlwjkX2CCLPR7mvrHkXTQB5W2M3azGabyj1pK3KGn3/A0I70gfMJjJt1tViWL8P1JZCPIn5NJM02CG76RMJTG2H8/oQqowENZ6sBns6u4e6zELERFNYt5qoN+I3kUG6kNFtQITojiddi7nDthO/A3hK8Syovtw/D2/nEa6EnffjKHyngsi33NTYdvw+nbcuLNk9AyEe76lNGvRwsAa4XC3D1ydziyG4EHVL1SRmzaZeGDZ7chg6q1mLgOE0l72zb5Hcal9ZKngsZson9P+4aMBPfj1P/S3lRKOJCNKWEWlkpVlZAhqe2BWUdcIoFi+MadX75uDqyEJZXWRXH0ZtoYqk429aZPuuezH5TaI8dkAAMxlDgp+xu8aq2R9A7QGVLw8G4dm4N1BJEU1pleHw92gx56Xj/dpOz+OVQdsHvfvsKVDYb6EtOxGO+LE2zFr1eJtoqrJtLPv5NGcQusJodJgClkXL1FUe14Y0ehiVQSUfcaRTmInYNa7/uW2irZDaHytIxvkzSiuk9N253ZbcQ3AQ4Qbri6Hn40GtpZZkYOCi3WzAem53Hi0gloDAeDOJGvypwphINqQuup6VJkzpPNcoGYta1FCArD5esgzJdzfOvPhnv7O0hRwDx+w1Os1C96QQuN0=
-  - secure: dZU8tOUBkPbjftXWsxtSIWeKrbslwC88ziXM/CBf1R43cIjItWPq7n+vXHXeuq+j81VSxentpMoheUYeqNMK4jiGae0OSzUrXMx6jzUnAgr6ZMBshruWrtAFVpS7nhQULCo0fIHrLrS6Afl8zHq0fmYzdwBViT8BneyRH9v9y1CwsmSJFBLh4kOymND3uIAyXcgXo/GeDJkvsB1YJKJgM+nmc4zAHMk3oM2qbBAPornXtlrky6YhUq+U9//D/4zUm+DeH8koWu3ARIWofcfbtamvQqg8UDwyzzcDeAuJJJPdc7+z3bQSC0o1sugLi/uk9n9xEHvcZKrLD+cBU6uJJhQ+rj+njsrMhLZI1oaHeW1PlledJ+fFrxP07Y6YeKiM08cRG/7G6U5xgeO+bWHZBFUoz0dksElNQwr1SAZ3guGCmuOUl57ukkp+/X3F0dCtqxDOLyhXslcjQJ0GzoCOEFOGlFsLTd7xcrcdGSsd1gZnWDdzenJ3ZUKQSEoCt7GJ9LgQdWW/GGZLyUhhQiFGG1F3aB8JMYVY5flTvIgh/2cEq0aPOYtIP54fMQm/O5ThAfRrKoj3tTUhuWSCBgKSXFT0jvVUhYcHDHoTNscQ7jNZivUweoO6w91k6uVnmhxYwS5B6MX4hEEhVHW/G2LnZfBJHY4SYwKdWElsJaYNsfI=
+  - GPG_DIR=${TRAVIS_BUILD_DIR}/.travis/keyrings

@@ -31,8 +31,8 @@ public class ConnectionFactory {
     public ConnectionFactory() {}
 
     public ConnectionFactory(String clusterId, String clientId) {
-        this.clusterId = clusterId;
-        this.clientId = clientId;
+        setClusterId(clusterId);
+        setClientId(clientId);
     }
 
     public ConnectionImpl createConnection() throws IOException, TimeoutException {
