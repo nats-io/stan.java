@@ -2,11 +2,9 @@ language: java
 jdk:
 - oraclejdk8
 before_install:
-- wget https://github.com/nats-io/nats-streaming-server/releases/download/v0.2.2/nats-streaming-server-linux-amd64.zip -q
-- export PATH=$PATH:${TRAVIS_BUILD_DIR}/nats-streaming-server-linux-amd64
+- export PATH=$PATH:${TRAVIS_BUILD_DIR}/target
 - echo "MAVEN_OPTS='-Xmx2g -XX:+TieredCompilation -XX:TieredStopAtLevel=1'" > ~/.mavenrc
 install:
-#- sudo apt-get -qq update
 - sudo apt-get install -y gnupg2
 script:
 - mvn --settings .travis/settings.xml clean verify -U

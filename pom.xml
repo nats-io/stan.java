@@ -2,19 +2,18 @@
     and the accompanying materials are made available under the terms of the 
     MIT License (MIT) which accompanies this distribution, and is available at 
     http://opensource.org/licenses/MIT -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>io.nats</groupId>
         <artifactId>nats-parent</artifactId>
-        <version>1.1-SNAPSHOT</version>
+        <version>1.1</version>
     </parent>
 
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>java-nats-streaming</name>
@@ -25,6 +24,13 @@
         <url>http://nats.io</url>
         <name>Apcera, Inc.</name>
     </organization>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
     <scm>
         <url>https://github.com/nats-io/java-nats-streaming</url>
         <connection>scm:git:git://github.com/nats-io/java-nats-streaming.git</connection>
@@ -53,12 +59,18 @@
         <protobuf.input.directory>${project.basedir}/src/main/proto</protobuf.input.directory>
         <protobuf.output.directory>${project.build.directory}/generated-sources</protobuf.output.directory>
 
-        <!-- library versions -->
-        <jnats-version>0.5.1</jnats-version>
-
         <!-- plugin configuration -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+
+        <!-- project-specific plugin versions -->
+        <jnats-version>0.5.3</jnats-version>
+
+        <!-- Used for downloading and installing a server binary for tests -->
+        <server.version>0.2.2</server.version>
+        <server.exec.name>nats-streaming-server</server.exec.name>
+        <server.exec.pkg>${server.exec.name}-${nats.os}-${nats.arch}</server.exec.pkg>
+        <server.exec.pkg.url>https://github.com/nats-io/${server.exec.name}/releases/download/v${server.version}/${server.exec.pkg}.zip</server.exec.pkg.url>
 
     </properties>
 
@@ -68,6 +80,7 @@
         <dependency>
             <groupId>io.nats</groupId>
             <artifactId>jnats</artifactId>
+            <version>${jnats-version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -79,6 +92,16 @@
         </dependency>
 
         <!-- TEST -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -97,8 +120,6 @@
     </dependencies>
 
     <build>
-
-        <!-- copy protoc binary artifact -->
         <plugins>
             <plugin>
                 <!-- This plugin takes care of packaging the artifact as 
@@ -107,13 +128,14 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
             </plugin>
+            <!-- copy protoc binary artifact -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>copy-protoc</id>
-                        <!--  have to use initialize phase to ensure ordering -->
+                        <!-- have to use initialize phase to ensure ordering -->
                         <phase>initialize</phase>
                         <goals>
                             <goal>copy</goal>
@@ -149,24 +171,17 @@
                         <phase>generate-sources</phase>
                         <configuration>
                             <target>
-                                <property name="protoc.filename"
-                                    value="protoc-${protobuf-java-version}-${os.detected.classifier}.exe" />
-                                <property name="protoc.filepath"
-                                    value="${project.build.directory}/${protoc.filename}" />
-                                <chmod file="${protoc.filepath}"
-                                    perm="ugo+rx" />
+                                <property name="protoc.filename" value="protoc-${protobuf-java-version}-${os.detected.classifier}.exe" />
+                                <property name="protoc.filepath" value="${project.build.directory}/${protoc.filename}" />
+                                <chmod file="${protoc.filepath}" perm="ugo+rx" />
                                 <mkdir dir="${protobuf.output.directory}" />
                                 <path id="protobuf.input.filepaths.path">
-                                    <fileset
-                                        dir="${protobuf.input.directory}">
+                                    <fileset dir="${protobuf.input.directory}">
                                         <include name="*.proto" />
                                     </fileset>
                                 </path>
-                                <pathconvert pathsep=" "
-                                    property="protobuf.input.filepaths"
-                                    refid="protobuf.input.filepaths.path" />
-                                <exec executable="${protoc.filepath}"
-                                    failonerror="true">
+                                <pathconvert pathsep=" " property="protobuf.input.filepaths" refid="protobuf.input.filepaths.path" />
+                                <exec executable="${protoc.filepath}" failonerror="true">
                                     <arg value="-I" />
                                     <arg value="${protobuf.input.directory}" />
                                     <arg value="--proto_path" />
@@ -175,6 +190,26 @@
                                     <arg value="${protobuf.output.directory}" />
                                     <arg line="${protobuf.input.filepaths}" />
                                 </exec>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>prepare</id>
+                        <phase>generate-test-resources</phase>
+                        <configuration>
+                            <target xmlns:unless="ant:unless" xmlns:if="ant:if" name="copy-server-exec" unless:true="${server.installed}">
+                                <condition property="server.installed" else="false">
+                                    <available file="${server.exec.name}" filepath="${project.build.directory}" type="file" />
+                                </condition>
+                                <echo if:true="${server.installed}" message="${server.exec.name} is already installed. Skipping download..." />
+                                <echo unless:true="${server.installed}" message="Installing ${server.exec.pkg} as ${project.build.directory}/${server.exec.name}..." />
+                                <get unless:true="${server.installed}" src="${server.exec.pkg.url}" dest="${project.build.directory}" skipexisting="true" />
+                                <unzip unless:true="${server.installed}" src="${project.build.directory}/${server.exec.pkg}.zip" dest="${project.build.directory}" overwrite="false" />
+                                <move unless:true="${server.installed}" file="${project.build.directory}/${server.exec.pkg}/${server.exec.name}" tofile="${project.build.directory}/${server.exec.name}" overwrite="false" />
+                                <chmod perm="+x" file="${project.build.directory}/${server.exec.name}" />
                             </target>
                         </configuration>
                         <goals>
