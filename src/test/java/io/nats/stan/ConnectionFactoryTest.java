@@ -76,7 +76,7 @@ public class ConnectionFactoryTest {
             ConnectionFactory cf = new ConnectionFactory(testClusterName, testClientName);
             cf.setNatsConnection(nc);
             try (Connection sc = cf.createConnection()) {
-                assertTrue(sc instanceof Connection);
+                assertTrue(sc instanceof ConnectionImpl);
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
                 fail(e.getMessage());

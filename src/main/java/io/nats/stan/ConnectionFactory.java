@@ -35,7 +35,7 @@ public class ConnectionFactory {
         setClientId(clientId);
     }
 
-    public ConnectionImpl createConnection() throws IOException, TimeoutException {
+    public io.nats.stan.Connection createConnection() throws IOException, TimeoutException {
         ConnectionImpl conn = new ConnectionImpl(clusterId, clientId, options());
         conn.connect();
         return conn;

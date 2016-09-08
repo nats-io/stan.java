@@ -49,7 +49,7 @@ class UnitTestUtilities {
     static final String testClusterName = "my_test_cluster";
     static final String testClientName = "me";
 
-    static ConnectionImpl newDefaultConnection(Logger log) {
+    static Connection newDefaultConnection(Logger log) {
         io.nats.client.ConnectionFactory ncf = new io.nats.client.ConnectionFactory();
         io.nats.client.Connection nc = null;
         ncf.setReconnectAllowed(false);
@@ -64,7 +64,7 @@ class UnitTestUtilities {
         scf.setClientId(testClientName);
         scf.setClusterId(testClusterName);
 
-        ConnectionImpl sc = null;
+        Connection sc = null;
         try {
             sc = scf.createConnection();
         } catch (IOException | TimeoutException e) {
