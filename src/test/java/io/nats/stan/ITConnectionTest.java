@@ -77,7 +77,7 @@ public class ITConnectionTest {
     public void testNoNats() {
         sleep(500, TimeUnit.MILLISECONDS);
         boolean exThrown = false;
-        try (Connection c = new ConnectionFactory("someNonExistantServerID", "myTestClient")
+        try (Connection sc = new ConnectionFactory("someNonExistantServerID", "myTestClient")
                 .createConnection()) {
             fail("Should not have connected.");
         } catch (IOException | TimeoutException e) {
@@ -99,7 +99,7 @@ public class ITConnectionTest {
             // Non-existent or unreachable
             final long connectTime = 25;
             Stopwatch st = Stopwatch.createStarted();
-            try (Connection c = new ConnectionFactory("someNonExistentServerID", "myTestClient")
+            try (Connection sc = new ConnectionFactory("someNonExistentServerID", "myTestClient")
                     .createConnection()) {
                 fail("Should not have connected.");
             } catch (IOException | TimeoutException e) {
@@ -711,7 +711,7 @@ public class ITConnectionTest {
     public void testSubscriptionStartAtFirst() {
         try (STANServer s = runServer(clusterName, false)) {
             ConnectionFactory cf = new ConnectionFactory(clusterName, clientName);
-            try (ConnectionImpl sc = cf.createConnection()) {
+            try (Connection sc = cf.createConnection()) {
                 // Publish ten messages
                 for (int i = 1; i <= 10; i++) {
                     sc.publish("foo", String.format("%d", i).getBytes());
