@@ -69,10 +69,12 @@
         <java-nats-version>1.0-SNAPSHOT</java-nats-version>
 
         <!-- Used for downloading and installing a server binary for tests -->
-        <server.version>0.3.0</server.version>
-        <server.exec.name>nats-streaming-server</server.exec.name>
-        <server.exec.pkg>${server.exec.name}-${nats.os}-${nats.arch}</server.exec.pkg>
-        <server.exec.pkg.url>https://github.com/nats-io/${server.exec.name}/releases/download/v${server.version}/${server.exec.pkg}.zip</server.exec.pkg.url>
+        <server.version>0.3.6</server.version>
+        <server.name>nats-streaming-server</server.name>
+        <server.release.name>${server.name}-v${server.version}</server.release.name>
+        <server.release.pkg>${server.name}-v${server.version}-${nats.os}-${nats.arch}</server.release.pkg>
+        <server.release.pkg.url>https://github.com/nats-io/${server.name}/releases/download/v${server.version}/${server.release.pkg}.zip</server.release.pkg.url>
+        <server.exec.name>${server.name}</server.exec.name>
 
     </properties>
 
@@ -207,10 +209,10 @@
                                     <available file="${server.exec.name}" filepath="${project.build.directory}" type="file" />
                                 </condition>
                                 <echo if:true="${server.installed}" message="${server.exec.name} is already installed. Skipping download..." />
-                                <echo unless:true="${server.installed}" message="Installing ${server.exec.pkg} as ${project.build.directory}/${server.exec.name}..." />
-                                <get unless:true="${server.installed}" src="${server.exec.pkg.url}" dest="${project.build.directory}" skipexisting="true" />
-                                <unzip unless:true="${server.installed}" src="${project.build.directory}/${server.exec.pkg}.zip" dest="${project.build.directory}" overwrite="false" />
-                                <move unless:true="${server.installed}" file="${project.build.directory}/${server.exec.pkg}/${server.exec.name}" tofile="${project.build.directory}/${server.exec.name}" overwrite="false" />
+                                <echo unless:true="${server.installed}" message="Installing ${server.release.pkg} as ${project.build.directory}/${server.exec.name}..." />
+                                <get unless:true="${server.installed}" src="${server.release.pkg.url}" dest="${project.build.directory}" skipexisting="true" />
+                                <unzip unless:true="${server.installed}" src="${project.build.directory}/${server.release.pkg}.zip" dest="${project.build.directory}" overwrite="false" />
+                                <move unless:true="${server.installed}" file="${project.build.directory}/${server.release.pkg}/${server.release.name}" tofile="${project.build.directory}/${server.exec.name}" overwrite="false" />
                                 <chmod perm="+x" file="${project.build.directory}/${server.exec.name}" />
                             </target>
                         </configuration>
