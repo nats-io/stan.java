@@ -350,7 +350,7 @@ public class SubscriptionOptions {
         }
         
         /**
-         * Creates a {@link SubscriptionOptions} instance based on the provided configuration.
+         * Creates a {@link SubscriptionOptions} instance based on the provided {@link SubscriptionOptionsMsg} configuration.
          *
          * @return the created {@link SubscriptionOptions} instance
          */
@@ -359,9 +359,9 @@ public class SubscriptionOptions {
         }
                
         /**
-         * Creates a {@link SubscriptionOptions} instance based on the provided configuration.
+         * Creates a {@link SubscriptionOptionsMsg} instance based on the provided configuration.
          *
-         * @return the created {@link SubscriptionOptions} instance
+         * @return the created {@link SubscriptionOptionsMsg} instance
          */
        public SubscriptionOptionsMsg buildMsg() {
         	return SubscriptionOptionsMsg.newBuilder()
