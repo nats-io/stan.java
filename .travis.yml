@@ -1,9 +1,12 @@
+dist: trusty
+sudo: required
 language: java
 jdk:
 - oraclejdk8
+- openjdk8
 before_install:
 - export PATH=$PATH:${TRAVIS_BUILD_DIR}/target
-- echo "MAVEN_OPTS='-Xmx2g -XX:+TieredCompilation -XX:TieredStopAtLevel=1'" > ~/.mavenrc
+- echo "MAVEN_OPTS='-Xmx2g -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Djava.security.egd=file:/dev/./urandom'" > ~/.mavenrc
 install:
 - sudo apt-get install -y gnupg2
 script:

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if [ "$M2_REPO" = "" ]; then
+    if [ ! -d $HOME/.m2/repository ]; then
+        echo "$M2_REPO does not exist. Exiting."
+        exit 1
+    fi
+    export M2_REPO=$HOME/.m2/repository
+fi
+
+export PROTOBUF_VERSION=3.0.0-beta-2
+export JNATS_VERSION=0.4.0
+export JSTAN_VERSION=0.1.0-SNAPSHOT
+export SLF4J_VERSION=1.7.7
+
+export PROTOBUF_LIB=$M2_REPO/com/google/protobuf/protobuf-java/${PROTOBUF_VERSION}/protobuf-java-${PROTOBUF_VERSION}.jar
+export JNATS_LIB=$M2_REPO/io/nats/jnats/${JNATS_VERSION}/jnats-${JNATS_VERSION}.jar
+export JSTAN_LIB=$M2_REPO/io/nats/jstan/${JSTAN}/jnats-${JSTAN_VERSION}.jar
+export SLF4J_API_LIB=$M2_REPO/org/slf4j/slf4j-api/${SLF4J_VERSION}/slf4j-api-${SLF4J_VERSION}.jar
+export SLF4J_SIMPLE_LIB=$M2_REPO/org/slf4j/slf4j-simple/${SLF4J_VERSION}/slf4j-simple-${SLF4J_VERSION}.jar
+
+export CLASSPATH=target/classes:$PROTOBUF_LIB:$JNATS_LIB:$SLF4J_API_LIB:$SLF4J_SIMPLE_LIB
+
+java -cp $CLASSPATH io.nats.streaming.examples.Subscriber $*

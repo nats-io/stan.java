@@ -6,35 +6,61 @@ NATS Streaming is an extremely performant, lightweight reliable streaming platfo
 [![Build Status](https://travis-ci.org/nats-io/java-nats-streaming.svg?branch=master)](http://travis-ci.org/nats-io/java-nats-streaming)
 [![Coverage Status](https://coveralls.io/repos/github/nats-io/java-nats-streaming/badge.svg?branch=master&t=YxbrCO)](https://coveralls.io/github/nats-io/java-nats-streaming?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
-[![Javadocs](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
+[![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
+
+[![Dependency Status](https://www.versioneye.com/user/projects/57c07fd1968d6400336022f2/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/57c07fd1968d6400336022f2)
+[![Reference Status](https://www.versioneye.com/java/io.nats:java-nats-streaming/reference_badge.svg?style=flat-square)](https://www.versioneye.com/java/io.nats:java-nats-streaming/references)
 
 ## Installation
 
-Install the client jar:
+### Maven Central
 
+#### Releases
+
+Current stable release (click for pom info): [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
+
+#### Snapshots
+
+Snapshot releases from the current `master` branch are uploaded to Sonatype OSSRH (OSS Repository Hosting) with each successful Travis CI build. 
+If you don't already have your pom.xml configured for using Maven snapshots, you'll need to add the following repository to your pom.xml:
+
+```xml
+<profiles>
+  <profile>
+     <id>allow-snapshots</id>
+        <activation><activeByDefault>true</activeByDefault></activation>
+     <repositories>
+       <repository>
+         <id>snapshots-repo</id>
+         <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+         <releases><enabled>false</enabled></releases>
+         <snapshots><enabled>true</enabled></snapshots>
+       </repository>
+     </repositories>
+   </profile>
+</profiles>
 
 ```
-git clone git@github.com:/nats-io/java-nats-streaming.git
-
+#### Building from source code (this repository)
+First, download and install the parent POM:
+```
+git clone git@github.com:nats-io/nats-parent-pom.git
+cd nats-parent-pom
 mvn install
 ```
 
-Load the following dependency in your project's pom.xml:
-
+Now clone, compile, and install in your local maven repository (or copy the artifacts from the `target/` directory to wherever you need them):
 ```
-  <dependencies>
-    ...
-    <dependency>
-      <groupId>io.nats</groupId>
-      <artifactId>java-nats-streaming</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
-    </dependency>
-  </dependencies>
+git clone git@github.com:/nats-io/java-nats-streaming.git
+cd java-nats-streaming
+mvn install
 ```
 
-## Documentation
+## Platform Notes
+### Linux
+We use RNG to generate unique inbox names. A peculiarity of the JDK on Linux (see [JDK-6202721] (https://bugs.openjdk.java.net/browse/JDK-6202721) and [JDK-6521844](https://bugs.openjdk.java.net/browse/JDK-6521844)) causes Java to use `/dev/random` even when `/dev/urandom` is called for. The net effect on java-nats-streaming is that client connection startup will be very slow. The standard workaround is to add this to your JVM options:
 
-The javadoc can be accessed [here](http://nats-io.github.io/java-nats-streaming/).
+`-Djava.security.egd=file:/dev/./urandom`
 
 ## Basic Usage
 
@@ -46,12 +72,19 @@ Connection sc = cf.createConnection();
 // Simple Synchronous Publisher
 sc.publish("foo", "Hello World".getBytes()); // does not return until an ack has been received from NATS Streaming server
 
+// use latch to await delivery of message before shutting down
+CountDownLatch latch = new CountDownLatch(1); 
+
 // Simple Async Subscriber
 Subscription sub = sc.subscribe("foo", new MessageHandler() {
-    public void onMessage(Message m) {
-        System.out.printf("Received a message: %s\n", m.getData());
-    }
-});
+  public void onMessage(Message m) {
+    latch.countDown();
+    System.out.printf("Received a message: %s\n", new String(m.getData()));
+  }
+}, new SubscriptionOptions.Builder().deliverAllAvailable().build());
+
+// pause until message delivered 
+latch.await();
 
 // Unsubscribe
 sub.unsubscribe();
@@ -235,6 +268,13 @@ sc.subscribe("foo", new MessageHandler() {
 }, new SubscriptionOptions.Builder().setManualAcks(true).setMaxInFlight(25).build());
 
 ```
+## Logging
+
+This library logs error, warning, and debug information using the [Simple Logging Facade for Java (SLF4J)](www.slf4j.org) API. 
+This gives you, the downstream user, flexibility to choose which (if any) logging implementation you prefer.
+### Q: Hey, what the heck is this `Failed to load class org.slf4j.impl.StaticLoggerBinder` exception?". 
+A: You're getting that message because slf4j can't find an actual logger implementation in your classpath. 
+Carefully reading [the link embedded in those exception messages](http://www.slf4j.org/codes.html#StaticLoggerBinder) is highly recommended! 
 
 ## License
 
