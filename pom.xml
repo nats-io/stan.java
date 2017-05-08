@@ -423,29 +423,6 @@
                     </execution>
                 </executions>
             </plugin>
-<<<<<<< HEAD
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.4.3</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<relocations>
-								<relocation>
-									<pattern>com.google.protobuf</pattern>
-									<shadedPattern>shaded.nats.com.google.protobuf</shadedPattern>
-								</relocation>
-							</relocations>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-=======
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -484,7 +461,6 @@
                         </execution>
                 </executions>
             </plugin>
->>>>>>> nats-io/master
         </plugins>
     </build>
 
