@@ -119,3 +119,22 @@ message CloseRequest {
 message CloseResponse {
   string error = 1; // err string, empty/omitted if no error
 }
+
+// A SubscriptionOptions object defines the configurable parameters of a STAN Subscription object.
+message SubscriptionOptionsMsg {
+  // DurableName, if set will survive client restarts.
+  string durableName	=1;
+  // Controls the number of messages the cluster will have inflight without an ACK.
+  int32 maxInFlight		=2;
+  // Controls the time the cluster will wait for an ACK for a given message.
+  uint64 ackWait		=3;
+  // StartPosition enum from proto.
+  StartPosition startAt	=4;
+  // Optional start sequence number.
+  uint64 startSequence	=5;
+  // Optional start time in nanoseconds since the UNIX epoch.
+  uint64 startTime		=6;
+  // Option to do Manual Acks
+  bool manualAcks		=7;
+}
+

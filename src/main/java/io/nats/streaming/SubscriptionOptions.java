@@ -7,6 +7,8 @@
 package io.nats.streaming;
 
 import io.nats.streaming.protobuf.StartPosition;
+import io.nats.streaming.protobuf.SubscriptionOptionsMsg;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -46,6 +48,16 @@ public class SubscriptionOptions {
         this.startSequence = builder.startSequence;
         this.startTime = builder.startTime;
         this.manualAcks = builder.manualAcks;
+    }
+    
+    private SubscriptionOptions(SubscriptionOptionsMsg optionsMsg) {
+        this.durableName = optionsMsg.getDurableName();
+        this.maxInFlight = optionsMsg.getMaxInFlight();
+        this.ackWait = Duration.ofNanos(optionsMsg.getAckWait());
+        this.startAt = optionsMsg.getStartAt();
+        this.startSequence = optionsMsg.getStartSequence();
+        this.startTime = Instant.ofEpochMilli(optionsMsg.getStartTime());
+        this.manualAcks = optionsMsg.getManualAcks();    	
     }
 
     /**
@@ -335,6 +347,32 @@ public class SubscriptionOptions {
          */
         public SubscriptionOptions build() {
             return new SubscriptionOptions(this);
+        }
+        
+        /**
+         * Creates a {@link SubscriptionOptions} instance based on the provided {@link SubscriptionOptionsMsg} configuration.
+         *
+         * @return the created {@link SubscriptionOptions} instance
+         */
+        public static SubscriptionOptions build(SubscriptionOptionsMsg optionsMsg) {
+            return new SubscriptionOptions(optionsMsg);
+        }
+               
+        /**
+         * Creates a {@link SubscriptionOptionsMsg} instance based on the provided configuration.
+         *
+         * @return the created {@link SubscriptionOptionsMsg} instance
+         */
+       public SubscriptionOptionsMsg buildMsg() {
+        	return SubscriptionOptionsMsg.newBuilder()
+    		    		.setDurableName(durableName)
+    		    		.setMaxInFlight(maxInFlight)
+    		    		.setAckWait(ackWait.toNanos())
+    		    		.setStartAt(startAt)
+    		    		.setStartSequence(startSequence)
+    		    		.setStartTime(startTime.toEpochMilli())
+    		    		.setManualAcks(manualAcks)
+    		    		.build();
         }
     }
 }
