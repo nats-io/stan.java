@@ -16,7 +16,7 @@ public final class NatsStreaming {
     static final int DEFAULT_CONNECT_WAIT = 2; // Seconds
     static final String DEFAULT_DISCOVER_PREFIX = "_STAN.discover";
     static final String DEFAULT_ACK_PREFIX = "_STAN.acks";
-    static final int DEFAULT_MAX_PUB_ACKS_IN_FLIGHT = 2 ^ 14; // 16384
+    static final int DEFAULT_MAX_PUB_ACKS_IN_FLIGHT = 16384;
     static final String PFX = "stan: ";
     static final String ERR_CONNECTION_REQ_TIMEOUT = PFX + "connect request timeout";
     static final String ERR_CLOSE_REQ_TIMEOUT = PFX + "close request timeout";
