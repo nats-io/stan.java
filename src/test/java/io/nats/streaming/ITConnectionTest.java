@@ -55,14 +55,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Category(IntegrationTest.class)
 public class ITConnectionTest {
-    private static final Logger logger = (Logger) LoggerFactory.getLogger(ITConnectionTest.class);
-
-    static final LogVerifier verifier = new LogVerifier();
 
     private final ExecutorService service = Executors.newCachedThreadPool();
 
@@ -524,7 +519,6 @@ public class ITConnectionTest {
                     received.incrementAndGet();
                     assertEquals("Wrong message sequence received", toSend, msg.getSequence());
                     savedMsgs.add(msg);
-                    logger.debug("msg={}", msg);
                     latch.countDown();
                 };
 
@@ -540,7 +534,7 @@ public class ITConnectionTest {
                     // Make sure we got our message
                     assertTrue("Did not receive our message", latch.await(5, TimeUnit.SECONDS));
                     if (received.get() != 1) {
-                        logger.error("Should have received 1 message with sequence {}, "
+                        System.err.printf("Should have received 1 message with sequence {}, "
                                 + "but got these {} messages:\n", toSend, savedMsgs.size());
                         for (Message savedMsg : savedMsgs) {
                             System.err.println(savedMsg);
@@ -1477,12 +1471,10 @@ public class ITConnectionTest {
                     // Track received for each receiver
                     if (msg.getSubscription().equals(subs[0])) {
                         s1Received.incrementAndGet();
-                        // logger.error("Sub1[{}]: {}\n", s1Received.get(), msg);
                     } else if (msg.getSubscription().equals(subs[1])) {
                         // Slow down this subscriber
                         sleep(50, TimeUnit.MILLISECONDS);
                         s2Received.incrementAndGet();
-                        // logger.error("Sub2[{}]: {}\n", s2Received.get(), msg);
                     } else {
                         fail("Received message on unknown subscription");
                     }
@@ -1551,16 +1543,14 @@ public class ITConnectionTest {
                     // Track received for each receiver
                     if (msg.getSubscription().equals(subs[0])) {
                         s1Received.incrementAndGet();
-                        // logger.error("Sub1[{}]: {}\n", s1Received.get(), msg);
                     } else if (msg.getSubscription().equals(subs[1])) {
                         // Block this subscriber
                         try {
                             s2BlockedLatch.await();
                         } catch (InterruptedException e) {
-                            logger.warn("Interrupted", e);
+                            System.err.println("Interrupted:" + e);
                         }
                         s2Received.incrementAndGet();
-                        // logger.error("Sub2[{}]: {}\n", s2Received.get(), msg);
                     } else {
                         fail("Received message on unknown subscription");
                     }
@@ -1838,7 +1828,7 @@ public class ITConnectionTest {
                             } catch (IOException e) {
                                 e.printStackTrace();
                             } catch (InterruptedException e) {
-                                logger.warn("publish interrupted");
+                                System.err.println("publish interrupted");
                                 Thread.currentThread().interrupt();
                             }
                         }

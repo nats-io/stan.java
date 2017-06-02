@@ -43,15 +43,12 @@ import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A utility class for measuring NATS performance.
  *
  */
 public class StanBench {
-    private static final Logger log = LoggerFactory.getLogger(StanBench.class);
 
     // Default test values
     private int numMsgs = 100000;
@@ -180,22 +177,22 @@ public class StanBench {
             nc.setDisconnectedCallback(new DisconnectedCallback() {
                 @Override
                 public void onDisconnect(ConnectionEvent ev) {
-                    log.error("Subscriber disconnected after {} msgs", received.get());
+                    System.err.printf("Subscriber disconnected after %d msgs", received.get());
                 }
             });
             nc.setClosedCallback(new ClosedCallback() {
                 @Override
                 public void onClose(ConnectionEvent ev) {
-                    log.error("Subscriber connection closed after {} msgs", received.get());
+                    System.err.printf("Subscriber connection closed after %d msgs", received.get());
                 }
             });
             nc.setExceptionHandler(new ExceptionHandler() {
                 @Override
                 public void onException(NATSException ex) {
-                    log.error("Subscriber connection exception", ex);
+                    System.err.printf("Subscriber connection exception", ex);
                     AsyncSubscription sub = (AsyncSubscription) ex.getSubscription();
-                    log.error("Sent={}, Received={}", published.get(), received.get());
-                    log.error("Messages dropped (total) = {}", sub.getDropped());
+                    System.err.printf("Sent=%d, Received=%d", published.get(), received.get());
+                    System.err.printf("Messages dropped (total) = %d", sub.getDropped());
                     System.exit(-1);
                 }
             });
@@ -220,19 +217,19 @@ public class StanBench {
                     received.incrementAndGet();
                     if (received.get() >= numMsgs) {
                         bench.addSubSample(new Sample(numMsgs, size, start, System.nanoTime(), nc));
-                        log.info("Subscriber connection stats: " + nc.getStats());
+                        System.out.printf("Subscriber connection stats: " + nc.getStats());
                         phaser.arrive();
                         nc.setDisconnectedCallback(null);
                         nc.setClosedCallback(null);
                         try {
                             sc.close();
                         } catch (IOException | TimeoutException e) {
-                            log.warn(
+                            System.err.printf(
                                     "streaming-bench: "
                                             + "exception thrown during subscriber connection close",
                                     e);
                         } catch (InterruptedException e) {
-                            log.warn("Interrupted during subscriber connection close", e);
+                            System.err.printf("Interrupted during subscriber connection close", e);
                             Thread.currentThread().interrupt();
                         }
                     }
@@ -308,7 +305,7 @@ public class StanBench {
                         try {
                             sc.publish(subject, msg, acb);
                         } catch (Exception e) {
-                            log.error("streaming-bench: error during publish", e);
+                            System.err.printf("streaming-bench: error during publish", e);
                         }
                     }
                     latch.await();
@@ -318,13 +315,13 @@ public class StanBench {
                             sc.publish(subject, msg);
                             published.incrementAndGet();
                         } catch (Exception e) {
-                            log.error("streaming-bench: error during publish", e);
+                            System.err.printf("streaming-bench: error during publish", e);
                         }
                     }
                 }
 
                 bench.addPubSample(new Sample(numMsgs, size, start, System.nanoTime(), nc));
-                log.info("Publisher connection stats: \n{}", nc.getStats());
+                System.out.printf("Publisher connection stats: \n" + nc.getStats());
             } // StreamingConnection
         }
     }

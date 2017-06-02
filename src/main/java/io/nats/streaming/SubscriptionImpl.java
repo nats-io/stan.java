@@ -17,11 +17,8 @@ import io.nats.streaming.protobuf.UnsubscribeRequest;
 import java.io.IOException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class SubscriptionImpl implements Subscription {
-    private static final Logger logger = LoggerFactory.getLogger(SubscriptionImpl.class);
 
     static final long DEFAULT_ACK_WAIT = 30 * 1000;
     static final int DEFAULT_MAX_IN_FLIGHT = 1024;
@@ -125,7 +122,6 @@ class SubscriptionImpl implements Subscription {
                     inboxSub.unsubscribe();
                 } catch (Exception e) {
                     // Silently ignore this, we can't do anything about it
-                    logger.debug("stan: exception unsubscribing from inbox ('{}')", e.getMessage());
                 }
                 inboxSub = null;
             }
@@ -165,7 +161,7 @@ class SubscriptionImpl implements Subscription {
         bytes = usr.toByteArray();
 
         io.nats.client.Message reply;
-        // logger.trace("Sending UnsubscribeRequest:\n{}", usr);
+
         try {
             reply = nc.request(reqSubject, bytes, sc.opts.connectTimeout.toMillis());
             if (reply == null) {
@@ -180,7 +176,6 @@ class SubscriptionImpl implements Subscription {
         }
 
         SubscriptionResponse response = SubscriptionResponse.parseFrom(reply.getData());
-        // logger.trace("Received Unsubscribe SubscriptionResponse:\n{}", response);
         if (!response.getError().isEmpty()) {
             throw new IOException(PFX + response.getError());
         }

@@ -40,11 +40,8 @@ import java.util.concurrent.TimeoutException;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class UnitTestUtilities {
-    static final Logger logger = LoggerFactory.getLogger(UnitTestUtilities.class);
 
     // final Object mu = new Object();
     private static NatsStreamingServer defaultServer = null;
@@ -369,13 +366,6 @@ class UnitTestUtilities {
 			e.printStackTrace();
 		}
         return srv;
-    }
-
-    static synchronized void setLogLevel(ch.qos.logback.classic.Level level) {
-        ch.qos.logback.classic.Logger lbLog =
-                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("io.nats" +
-                        ".streaming");
-        lbLog.setLevel(level);
     }
     
 	protected static Object serializeDeserialize(Object object)
