@@ -13,15 +13,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A SubscriptionOptions object defines the configurable parameters of a STAN Subscription object.
  */
 public class SubscriptionOptions {
-
-    static final Logger logger = LoggerFactory.getLogger(SubscriptionOptions.class);
 
     // DurableName, if set will survive client restarts.
     private final String durableName;

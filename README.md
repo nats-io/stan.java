@@ -189,9 +189,9 @@ Advanced users may wish to process these publish acknowledgements manually to ac
     AckHandler ackHandler = new AckHandler() { {
         public void onAck(String ackedNuid, Exception err) {
             if (err != null) {
-                log.error("Error publishing msg id %s: %s\n, ackedNuid, err.getMessage());
+               System.err.printf("Error publishing msg id %s: %s\n", ackedNuid, err.getMessage());
             } else {
-                log.info("Received ack for msg id %s\n", ackedNuid);
+                System.out.printf("Received ack for msg id %s\n", ackedNuid);
             }
         }
     }

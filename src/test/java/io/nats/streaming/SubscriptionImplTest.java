@@ -18,7 +18,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import ch.qos.logback.classic.Logger;
 import io.nats.streaming.protobuf.SubscriptionResponse;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -32,11 +31,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
-import org.slf4j.LoggerFactory;
 
 @Category(UnitTest.class)
 public class SubscriptionImplTest {
-    static final Logger logger = (Logger) LoggerFactory.getLogger(SubscriptionImplTest.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -44,7 +41,6 @@ public class SubscriptionImplTest {
     @Rule
     public TestCasePrinterRule pr = new TestCasePrinterRule(System.out);
 
-    private static final LogVerifier verifier = new LogVerifier();
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -56,12 +52,10 @@ public class SubscriptionImplTest {
 
     @Before
     public void setUp() throws Exception {
-        verifier.setup();
     }
 
     @After
     public void tearDown() throws Exception {
-        verifier.teardown();
     }
 
     /**
@@ -168,41 +162,6 @@ public class SubscriptionImplTest {
         }
     }
 
-    /**
-     * Test method for {@link io.nats.streaming.SubscriptionImpl#unsubscribe()}.
-     *
-     * @throws TimeoutException if unsubscribe request times out
-     * @throws IOException if unsubscribe throws an IOException
-     */
-//    @Test
-//    public void testUnsubscribeInboxWarning() throws Exception {
-//        StreamingConnectionImpl conn = null;
-//        try {
-//            conn = (StreamingConnectionImpl) newMockedConnection();
-//        } catch (IOException e) {
-//            /* NOOP */
-//        }
-//        SubscriptionOptions opts = new SubscriptionOptions.Builder().build();
-//        try (SubscriptionImpl sub = new SubscriptionImpl("foo", "bar", null, conn, opts)) {
-//            sub.setAckInbox("_ACK.streaming.foo");
-//            sub.inboxSub = mock(io.nats.client.Subscription.class);
-//            doThrow(new IOException("foobar")).when(sub.inboxSub).unsubscribe();
-//
-//            SubscriptionResponse usr = SubscriptionResponse.newBuilder().build();
-//            io.nats.client.Message raw = new io.nats.client.Message();
-//            raw.setData(usr.toByteArray());
-//            assertNotNull(conn);
-//            when(conn.nc.request(eq(conn.unsubRequests), any(byte[].class), any(long.class),
-//                    any(TimeUnit.class))).thenReturn(raw);
-//
-//            setLogLevel(Level.DEBUG);
-//            sub.unsubscribe();
-//            verify(conn.nc, times(1)).request(eq(conn.unsubRequests), any(byte[].class),
-//                    any(long.class), any(TimeUnit.class));
-//            verifier.verifyLogMsgMatches(Level.DEBUG,
-//                    "stan: exception unsubscribing from inbox .+");
-//        }
-//    }
 
     /**
      * Test method for {@link io.nats.streaming.SubscriptionImpl#unsubscribe()}. This should throw a

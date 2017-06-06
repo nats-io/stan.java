@@ -10,7 +10,6 @@ import static io.nats.streaming.NatsStreaming.ERR_CLOSE_REQ_TIMEOUT;
 import static io.nats.streaming.NatsStreaming.ERR_CONNECTION_REQ_TIMEOUT;
 import static io.nats.streaming.UnitTestUtilities.await;
 import static io.nats.streaming.UnitTestUtilities.newMockedConnection;
-import static io.nats.streaming.UnitTestUtilities.setLogLevel;
 import static io.nats.streaming.UnitTestUtilities.setupMockNatsConnection;
 import static io.nats.streaming.UnitTestUtilities.testClientName;
 import static io.nats.streaming.UnitTestUtilities.testClusterName;
@@ -33,8 +32,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.nats.client.NUID;
@@ -69,15 +66,9 @@ import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.slf4j.LoggerFactory;
 
 @Category(UnitTest.class)
 public class StreamingConnectionImplTest {
-    static final Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    static final Logger logger = (Logger) LoggerFactory.getLogger(StreamingConnectionImplTest
-            .class);
-
-    private static final LogVerifier verifier = new LogVerifier();
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -107,15 +98,12 @@ public class StreamingConnectionImplTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        verifier.setup();
     }
 
     // Always have this teardown otherwise we can stuff up our expectations. Besides, it's
     // good coding practise
     @After
     public void tearDown() throws Exception {
-        verifier.teardown();
-        setLogLevel(Level.INFO);
     }
 
     @SuppressWarnings("resource")
@@ -404,10 +392,7 @@ public class StreamingConnectionImplTest {
             io.nats.client.Subscription mockSub = mock(io.nats.client.Subscription.class);
             when(conn.getAckSubscription()).thenReturn(mockSub);
             doThrow(new IOException(Nats.ERR_CONNECTION_CLOSED)).when(mockSub).unsubscribe();
-            setLogLevel(Level.DEBUG);
             conn.close();
-            String expected = String.format("stan: error unsubscribing from acks.+");
-            verifier.verifyLogMsgMatches(Level.DEBUG, expected);
             assertNull(conn.nc);
         } catch (Exception e) {
             e.printStackTrace();
@@ -424,10 +409,7 @@ public class StreamingConnectionImplTest {
             when(conn.getHbSubscription()).thenReturn(mockSub);
             doThrow(new IllegalStateException(Nats.ERR_CONNECTION_CLOSED)).when(mockSub)
                     .unsubscribe();
-            setLogLevel(Level.DEBUG);
             conn.close();
-            String expected = String.format("stan: error unsubscribing from heartbeats.+");
-            verifier.verifyLogMsgMatches(Level.DEBUG, expected);
             assertNull(conn.nc);
         } catch (Exception e) {
             e.printStackTrace();
@@ -562,7 +544,6 @@ public class StreamingConnectionImplTest {
             doThrow(new InterruptedException("test")).when(pubAckChanMock).put(any(PubAck.class));
             conn.setPubAckChan(pubAckChanMock);
             conn.publish("testPublishStringByteArray", "Hello World".getBytes());
-            verifier.verifyLogMsgEquals(Level.WARN, "Publish operation interrupted");
         }
     }
 
@@ -932,7 +913,6 @@ public class StreamingConnectionImplTest {
             io.nats.client.Message raw =
                     new io.nats.client.Message("foo", "bar", "junk".getBytes());
             conn.processAck(raw);
-            verifier.verifyLogMsgEquals(Level.ERROR, "stan: error unmarshaling PubAck");
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
@@ -990,9 +970,8 @@ public class StreamingConnectionImplTest {
             PubAck pa = PubAck.newBuilder().setGuid(guid).setError("ERROR").build();
             io.nats.client.Message raw = new io.nats.client.Message("foo", "bar", pa.toByteArray());
 
-            setLogLevel(Level.DEBUG);
             conn.processAck(raw);
-            verifier.verifyLogMsgEquals(Level.DEBUG, "stan: processAck interrupted");
+
             verify(ch, times(1)).put(eq("ERROR"));
         } catch (Exception e) {
             e.printStackTrace();
@@ -1017,21 +996,6 @@ public class StreamingConnectionImplTest {
         }
     }
 
-    @Test
-    public void testProcessHeartBeatPublishLogsError() throws Exception {
-        final String error = "TEST";
-        final String errorMsg = "stan: error publishing heartbeat response: " + error;
-        try (StreamingConnectionImpl conn = (StreamingConnectionImpl) newMockedConnection()) {
-            doThrow(new IOException(error)).when(conn.nc).publish(any(String.class), eq(null));
-            io.nats.client.Message msg = new io.nats.client.Message();
-            msg.setReplyTo("foo");
-            conn.processHeartBeat(msg);
-            verifier.verifyLogMsgEquals(Level.WARN, errorMsg);
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail(e.getMessage());
-        }
-    }
 
     @Test
     public void testRemoveAckSuccess() throws Exception {
@@ -1148,9 +1112,6 @@ public class StreamingConnectionImplTest {
 
             // Should not have called pubAckChanMock.take()
             verify(pubAckChanMock, times(1)).take();
-
-            // Should have logged the exception
-            verifier.verifyLogMsgMatches(Level.WARN, "stan: interrupted during removeAck for .+$");
         }
     }
 
@@ -1443,7 +1404,6 @@ public class StreamingConnectionImplTest {
             conn.processMsg(raw);
             verify(mockCb, never()).onMessage(any(Message.class));
             verify(conn.nc, times(1)).publish(eq(ackSubject), any(byte[].class));
-            verifier.verifyLogMsgEquals(Level.ERROR, "Exception while publishing auto-ack: TEST");
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
@@ -1457,7 +1417,7 @@ public class StreamingConnectionImplTest {
             msg.setSubject("foo");
             msg.setData("junk".getBytes());
             conn.processMsg(msg);
-            verifier.verifyLogMsgEquals(Level.ERROR, "stan: error unmarshaling msg");
+            // TODO:  fix this - process message should throw an excpetion.
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());

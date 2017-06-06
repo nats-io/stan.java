@@ -7,11 +7,8 @@
 package io.nats.streaming;
 
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class NatsStreaming {
-    static final Logger logger = LoggerFactory.getLogger(NatsStreaming.class);
     static final String DEFAULT_NATS_URL = io.nats.client.Nats.DEFAULT_URL;
     static final int DEFAULT_CONNECT_WAIT = 2; // Seconds
     static final String DEFAULT_DISCOVER_PREFIX = "_STAN.discover";

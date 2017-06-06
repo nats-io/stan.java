@@ -30,12 +30,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Category(UnitTest.class)
 public class MessageTest {
-    private static final Logger logger = LoggerFactory.getLogger(MessageTest.class);
 
     static final String clusterName = "my_test_cluster";
     static final String clientName = "me";
@@ -102,7 +99,6 @@ public class MessageTest {
         assertEquals(redelivered, msg.isRedelivered());
         assertEquals(crc32, msg.getCrc32());
         assertNotNull(msg.getInstant());
-        logger.info("msg={}", msg);
     }
 
     @Test

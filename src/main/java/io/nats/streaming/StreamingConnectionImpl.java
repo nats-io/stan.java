@@ -41,14 +41,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class StreamingConnectionImpl implements StreamingConnection, io.nats.client.MessageHandler {
 
     static final String ERR_MANUAL_ACK = NatsStreaming.PFX + "cannot manually ack in auto-ack mode";
-
-    private static final Logger logger = LoggerFactory.getLogger(StreamingConnectionImpl.class);
 
     private final ReadWriteLock mu = new ReentrantReadWriteLock();
 
@@ -123,7 +119,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             String discoverSubject = String.format("%s.%s", opts.getDiscoverPrefix(), clusterId);
             ConnectRequest req = ConnectRequest.newBuilder().setClientID(clientId)
                     .setHeartbeatInbox(hbInbox).build();
-            // logger.trace("Sending ConnectRequest:\n{}", req.toString().trim());
+
             byte[] bytes = req.toByteArray();
             Message reply;
             reply = nc.request(discoverSubject, bytes, opts.getConnectTimeout().toMillis());
@@ -136,7 +132,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 // (StreamingConnectionImpl.SERVER_ERR_INVALID_CLIENT)
                 throw new IOException(cr.getError());
             }
-            logger.trace("Received ConnectResponse:\n{}", cr);
 
             // Capture cluster configuration endpoints to publish and
             // subscribe/unsubscribe.
@@ -194,14 +189,12 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     @Override
     public void close() throws IOException, InterruptedException {
-        logger.trace("In STAN close()");
         io.nats.client.Connection nc;
         this.lock();
         try {
             // Capture for NATS calls below
             if (getNatsConnection() == null) {
                 // We are already closed
-                logger.debug("stan: NATS connection already closed");
                 return;
             }
 
@@ -218,8 +211,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     try {
                         getAckSubscription().unsubscribe();
                     } catch (Exception e) {
-                        logger.debug(
-                                "stan: error unsubscribing from acks ('{}')", e.getMessage(), e);
+                        // ignore
                     }
                 }
 
@@ -227,20 +219,17 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     try {
                         getHbSubscription().unsubscribe();
                     } catch (Exception e) {
-                        logger.debug("stan: error unsubscribing from heartbeats ('{}')",
-                                e.getMessage(), e);
+                        // ignore
                     }
                 }
 
                 CloseRequest req = CloseRequest.newBuilder().setClientID(clientId).build();
-                logger.trace("CLOSE request: [{}]", req);
                 byte[] bytes = req.toByteArray();
                 Message reply;
                 reply = nc.request(closeRequests, bytes, opts.getConnectTimeout().toMillis());
                 if (reply == null) {
                     throw new IOException(NatsStreaming.ERR_CLOSE_REQ_TIMEOUT);
                 }
-                logger.trace("CLOSE response: [{}]", reply);
                 if (reply.getData() != null) {
                     CloseResponse cr = CloseResponse.parseFrom(reply.getData());
 
@@ -253,7 +242,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     try {
                         nc.close();
                     } catch (Exception ignore) {
-                        logger.debug("NATS connection was null in close()");
+                        // ignore
                     }
                 }
             } // first finally
@@ -282,10 +271,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         if (nc != null) {
             try {
                 nc.publish(msg.getReplyTo(), null);
-                logger.debug("Sent heartbeat response");
             } catch (IOException e) {
-                logger.warn("stan: error publishing heartbeat response: {}", e.getMessage());
-                logger.debug("Full stack trace:", e);
+                // ignore exception; nothing we can do.
             }
         }
     }
@@ -306,9 +293,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 throw new IOException(err);
             }
         } catch (InterruptedException e) {
-            logger.debug("stan: publish interrupted");
-            logger.debug("Full stack trace:", e);
-            // Thread.currentThread().interrupt();
+            // TODO:  ignore for now, but re-evaluatate this
         }
     }
 
@@ -364,9 +349,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         try {
             pac.put(PubAck.getDefaultInstance());
         } catch (InterruptedException e) {
-            logger.warn("Publish operation interrupted", e);
+            // TODO:  Reevaluate this.
             // Eat this because you can't really do anything with it
-            // Thread.currentThread().interrupt();
         }
 
         try {
@@ -437,7 +421,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             SubscriptionRequest sr = createSubscriptionRequest(sub);
 
             Message reply;
-            // logger.trace("Sending SubscriptionRequest:\n{}", sr);
             reply = nc.request(subRequests, sr.toByteArray(), 2L, TimeUnit.SECONDS);
             if (reply == null) {
                 sub.inboxSub.unsubscribe();
@@ -451,7 +434,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 sub.inboxSub.unsubscribe();
                 throw e;
             }
-            // logger.trace("Received SubscriptionResponse:\n{}", response);
             if (!response.getError().isEmpty()) {
                 sub.inboxSub.unsubscribe();
                 throw new IOException(response.getError());
@@ -507,10 +489,10 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         Exception ex = null;
         try {
             pa = PubAck.parseFrom(msg.getData());
-            // logger.trace("Received PubAck:\n{}", pa);
         } catch (InvalidProtocolBufferException e) {
-            logger.error("stan: error unmarshaling PubAck");
-            logger.debug("Full stack trace: ", e);
+            // If we are speaking to a server we don't understand, let the
+            // user know.
+            System.err.println("Protocol error: " +  e.getStackTrace());
             return;
         }
 
@@ -530,7 +512,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 try {
                     ackClosure.ch.put(ackError);
                 } catch (InterruptedException e) {
-                    logger.debug("stan: processAck interrupted");
+                    // ignore
                 }
             }
         }
@@ -542,9 +524,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 try {
                     processAckTimeout(guid);
                 } catch (Exception e) {
-                    // catch exception to prevent the timer to be closed
-                    logger.error("stan: error encountered during processAckTimeout, will cancel this timer task", e);
-                    // cancel this task
+                    // catch exception to prevent the timer to be closed, but cancel this task
                     cancel();
                 }
             }
@@ -558,8 +538,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         }
         if (ackClosure.ah != null) {
             ackClosure.ah.onAck(guid, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
-        } else if (ackClosure.ch != null && !ackClosure.ch.offer(NatsStreaming.ERR_TIMEOUT)) {
-            logger.warn("stan: processAckTimeout unable to write timeout error to ack channel");
         }
     }
 
@@ -590,9 +568,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 // remove from queue to unblock publish
                 pac.take();
             } catch (InterruptedException e) {
-                logger.warn("stan: interrupted during removeAck for {}", guid);
-                logger.debug("Full stack trace:", e);
-                // Thread.currentThread().interrupt();
+                // TODO:  Ignore, but re-evaluate this
             }
         }
 
@@ -616,14 +592,10 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         io.nats.client.Connection nc;
 
         try {
-            // logger.trace("In processMsg, msg = {}", raw);
             MsgProto msgp = MsgProto.parseFrom(raw.getData());
-            // logger.trace("processMsg received MsgProto:\n{}", msgp);
             stanMsg = createStanMessage(msgp);
         } catch (InvalidProtocolBufferException e) {
-            logger.error("stan: error unmarshaling msg");
-            logger.debug("msg: {}", raw);
-            logger.debug("full stack trace:", e);
+            // TODO:  Ignore, but re-evaluate this
         }
 
         // Lookup the subscription
@@ -669,15 +641,10 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             Ack ack = Ack.newBuilder().setSubject(stanMsg.getSubject())
                     .setSequence(stanMsg.getSequence()).build();
             try {
-                // logger.trace("processMsg publishing Ack for sequence: {}",
-                // stanMsg.getSequence());
                 nc.publish(ackSubject, ack.toByteArray());
-                // logger.trace("processMsg published Ack:\n{}", ack);
             } catch (IOException e) {
                 // FIXME(dlc) - Async error handler? Retry?
                 // This really won't happen since the publish is executing in the NATS thread.
-                logger.error("Exception while publishing auto-ack: {}", e.getMessage());
-                logger.debug("Stack trace: ", e);
             }
         }
     }

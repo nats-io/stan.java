@@ -12,7 +12,6 @@ import static io.nats.streaming.UnitTestUtilities.testClusterName;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import ch.qos.logback.classic.Logger;
 import io.nats.client.Nats;
 import io.nats.streaming.examples.Publisher;
 import io.nats.streaming.examples.Subscriber;
@@ -30,14 +29,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-import org.slf4j.LoggerFactory;
 
 @Category(IntegrationTest.class)
 public class SubscriberTest {
-    static final Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    static final Logger logger = (Logger) LoggerFactory.getLogger(SubscriberTest.class);
-
-    static final LogVerifier verifier = new LogVerifier();
 
     private static final String clusterId = UnitTestUtilities.testClusterName;
 
