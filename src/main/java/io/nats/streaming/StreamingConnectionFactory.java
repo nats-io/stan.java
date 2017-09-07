@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * A {@code StreamingConnectionFactory} object encapsulates a set of connection configuration
  * options. A client uses it to create a connection to the STAN streaming data system.
  */
-class StreamingConnectionFactory {
+public class StreamingConnectionFactory {
     private Duration ackTimeout = Duration.ofMillis(SubscriptionImpl.DEFAULT_ACK_WAIT);
     private Duration connectTimeout = Duration.ofSeconds(NatsStreaming
             .DEFAULT_CONNECT_WAIT);
