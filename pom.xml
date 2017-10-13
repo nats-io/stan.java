@@ -15,7 +15,7 @@
 
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>0.5.1-SNAPSHOT</version>
+    <version>0.5.0</version>
     <packaging>bundle</packaging>
 
     <name>java-nats-streaming</name>
@@ -452,14 +452,6 @@
     <profiles>
         <profile>
             <id>ossrh</id>
-            <properties>
-                <gpg.executable>gpg2</gpg.executable>
-                <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
-                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-                <gpg.defaultKeyring>false</gpg.defaultKeyring>
-                <gpg.publicKeyring>${env.GPG_DIR}/pubring.gpg</gpg.publicKeyring>
-                <gpg.secretKeyring>${env.GPG_DIR}/secring.gpg</gpg.secretKeyring>
-            </properties>
             <activation>
                 <property>
                     <name>performRelease</name>
