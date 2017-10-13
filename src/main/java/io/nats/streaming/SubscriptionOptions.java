@@ -125,6 +125,47 @@ public class SubscriptionOptions {
         return manualAcks;
     }
 
+    @java.lang.Override
+    public java.lang.String toString() {
+        return "SubscriptionOptions{" +
+          "durableName='" + durableName + '\'' +
+          ", maxInFlight=" + maxInFlight +
+          ", ackWait=" + ackWait +
+          ", startAt=" + startAt +
+          ", startSequence=" + startSequence +
+          ", startTime=" + startTime +
+          ", manualAcks=" + manualAcks +
+          '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SubscriptionOptions that = (SubscriptionOptions) o;
+
+        if (maxInFlight != that.maxInFlight) return false;
+        if (startSequence != that.startSequence) return false;
+        if (manualAcks != that.manualAcks) return false;
+        if (durableName != null ? !durableName.equals(that.durableName) : that.durableName != null) return false;
+        if (ackWait != null ? !ackWait.equals(that.ackWait) : that.ackWait != null) return false;
+        if (startAt != that.startAt) return false;
+        return startTime != null ? startTime.equals(that.startTime) : that.startTime == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = durableName != null ? durableName.hashCode() : 0;
+        result = 31 * result + maxInFlight;
+        result = 31 * result + (ackWait != null ? ackWait.hashCode() : 0);
+        result = 31 * result + (startAt != null ? startAt.hashCode() : 0);
+        result = 31 * result + (int) (startSequence ^ (startSequence >>> 32));
+        result = 31 * result + (startTime != null ? startTime.hashCode() : 0);
+        result = 31 * result + (manualAcks ? 1 : 0);
+        return result;
+    }
+
     /**
      * A Builder implementation for creating an immutable {@code SubscriptionOptions} object.
      */

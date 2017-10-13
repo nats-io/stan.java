@@ -38,7 +38,11 @@ public class SubscriptionOptionsTest {
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        testOpts = new SubscriptionOptions.Builder().ackWait(Duration.ofMillis(500))
+        testOpts = buildSubscriptionOptions();
+    }
+
+    private static SubscriptionOptions buildSubscriptionOptions() {
+        return new SubscriptionOptions.Builder().ackWait(Duration.ofMillis(500))
                 .durableName("foo").manualAcks().maxInFlight(10000)
                 .startAtSequence(12345).build();
     }
@@ -160,6 +164,16 @@ public class SubscriptionOptionsTest {
         assertEquals(StartPosition.TimeDeltaStart, opts.getStartAt());
         String.format("Start time: expected %s but was %s", opts.getStartTime(), expected);
         assertTrue(opts.getStartTime().equals(expected));
+    }
+
+    @Test
+    public void testEquals(){
+        assertEquals(buildSubscriptionOptions(), buildSubscriptionOptions());
+    }
+
+    @Test
+    public void testHashcode(){
+        assertEquals(buildSubscriptionOptions().hashCode(), buildSubscriptionOptions().hashCode());
     }
 
 }
