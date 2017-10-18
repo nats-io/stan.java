@@ -69,19 +69,20 @@ We use RNG to generate unique inbox names. A peculiarity of the JDK on Linux (se
 // Create a connection factory for the default settings of a streaming server
 StreamingConnectionFactory cf = new StreamingConnectionFactory("test-cluster", "bar");
 
-// A StreamingConnection a logical connection to the NATS streaming server.  This API creates an underlying NATS
-// connection for convenience and simplicity.  In most cases one would create a secure NATS connection and pass
-// StreamingConnectionFactory.setNatsConnection(Connection nc.
+// A StreamingConnection is a logical connection to the NATS streaming server.
+// This API creates an underlying core NATS connection for convenience and simplicity.
+// In most cases one would create a secure core NATS connection and pass
+// it in via StreamingConnectionFactory.setNatsConnection(Connection nc)
 StreamingConnection sc = cf.createConnection();
 
 // This simple synchronous publish API blocks until an acknowledgement is returned from the server
-// No exception indicates the message has been stored in NATS streaming.
+// If no exception has been thrown, the message has been stored in NATS streaming.
 sc.publish("foo", "Hello World".getBytes());
 
 // Use a countdown latch to wait for our subscriber to receive the message we published above.
 final CountDownLatch doneSignal = new CountDownLatch(1);
 
-// Simple Async Subscriber
+// Simple Async Subscriber that retrieves all available messages.
 Subscription sub = sc.subscribe("foo", new MessageHandler() {
     public void onMessage(Message m) {
         System.out.printf("Received a message: %s\n", new String(m.getData()));
@@ -151,30 +152,30 @@ Durable subscriptions allow clients to assign a durable name to a subscription w
 Doing this causes the NATS Streaming server to track the last acknowledged message for that clientID + durable name, so that only messages since the last acknowledged message will be delivered to the client.
 
 ```java
-    StreamingConnection sc = new StreamingConnectionFactory("test-cluster", "client-123").createConnection();
+StreamingConnection sc = new StreamingConnectionFactory("test-cluster", "client-123").createConnection();
 
-    // Subscribe with a durable name
-    sc.subscribe("foo", new MessageHandler() {
-        public void onMessage(Message m) {
-            System.out.printf("Received a message: %s\n", m.getData());
-        }
-    }, new SubscriptionOptions.Builder().durableName("my-durable").build());
+// Subscribe with a durable name
+sc.subscribe("foo", new MessageHandler() {
+    public void onMessage(Message m) {
+        System.out.printf("Received a message: %s\n", m.getData());
+    }
+}, new SubscriptionOptions.Builder().durableName("my-durable").build());
 
-    // client receives message sequence 1-40
+// client receives message sequence 1-40
 
-    // client disconnects and meanwhile more messages are published to subject "foo"
+// client disconnects and meanwhile more messages are published to subject "foo"
 
-    // client reconnects with same clientID "client-123"
-    sc = new StreamingConnectionFactory("test-cluster", "client-123").createConnection();
+// client reconnects with same clientID "client-123"
+sc = new StreamingConnectionFactory("test-cluster", "client-123").createConnection();
 
-    // client re-subscribes to "foo" with same durable name "my-durable"
-    sc.subscribe("foo", new MessageHandler() {
-        public void onMessage(Message m) {
-            System.out.printf("Received a message: %s\n", m.getData());
-        }
-    }, new SubscriptionOptions.Builder().durableName("my-durable").build());
+// client re-subscribes to "foo" with same durable name "my-durable"
+sc.subscribe("foo", new MessageHandler() {
+    public void onMessage(Message m) {
+        System.out.printf("Received a message: %s\n", m.getData());
+    }
+}, new SubscriptionOptions.Builder().durableName("my-durable").build());
 
-    // client receives messages 41-current
+// client receives messages 41-current
 ```
 
 ### Wildcard Subscriptions
@@ -190,19 +191,19 @@ The basic publish API (`Publish(subject, payload)`) is synchronous; it does not 
 Advanced users may wish to process these publish acknowledgements manually to achieve higher publish throughput by not waiting on individual acknowledgements during the publish operation. An asynchronous publish API is provided for this purpose:
 
 ```java
-        // The ack handler will be invoked when a publish acknowledgement is received
-        AckHandler ackHandler = new AckHandler() {
-            public void onAck(String guid, Exception err) {
-                if (err != null) {
-                    System.err.printf("Error publishing msg id %s: %s\n", guid, err.getMessage());
-                } else {
-                    System.out.printf("Received ack for msg id %s\n", guid);
-                }
-            }
-        };
+// The ack handler will be invoked when a publish acknowledgement is received
+AckHandler ackHandler = new AckHandler() {
+    public void onAck(String guid, Exception err) {
+        if (err != null) {
+            System.err.printf("Error publishing msg id %s: %s\n", guid, err.getMessage());
+        } else {
+            System.out.printf("Received ack for msg id %s\n", guid);
+        }
+    }
+};
 
-        // This returns immediately.  The result of the publish will be handled in the ack handler.
-        String guid = sc.publish("foo", "Hello World".getBytes(), ackHandler); // returns immediately
+// This returns immediately.  The result of the publish can be handled in the ack handler.
+String guid = sc.publish("foo", "Hello World".getBytes(), ackHandler);
 ```
 
 ### Message Acknowledgements and Redelivery
@@ -211,15 +212,20 @@ NATS Streaming offers At-Least-Once delivery semantics, meaning that once a mess
 This timeout interval is specified by the subscription option `AckWait`, which defaults to 30 seconds.
 
 By default, messages are automatically acknowledged by the NATS Streaming client library after the subscriber's message handler is invoked. However, there may be cases in which the subscribing client wishes to accelerate or defer acknowledgement of the message. 
-To do this, the client must set manual acknowledgement mode on the subscription, and invoke `Ack()` on the `Msg`. ex:
+To do this, the client must set manual acknowledgement mode on the subscription, and invoke `ack()` on the `Msg`. ex:
 
 ```java
 // Subscribe with manual ack mode, and set AckWait to 60 seconds
 sc.subscribe("foo", new MessageHandler() {
     public void onMessage(Message m) {
-        m.ack(); // ack message before performing I/O intensive operation
-        ...
         System.out.printf("Received a message: %s\n", m.getData());
+
+        // You must manually ack when manualAcks() are set.
+        try {
+            m.ack();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }, new SubscriptionOptions.Builder().setManualAcks(true), setAckWait(Duration.ofSeconds(60)));
 ```
