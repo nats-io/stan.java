@@ -66,20 +66,23 @@ We use RNG to generate unique inbox names. A peculiarity of the JDK on Linux (se
 
 ```java
 
-// Create a connection factory for the default settings of a streaming server
+// Create a connection factory
 StreamingConnectionFactory cf = new StreamingConnectionFactory("test-cluster", "bar");
 
-// A StreamingConnection is a logical connection to the NATS streaming server.
-// This API creates an underlying core NATS connection for convenience and simplicity.
-// In most cases one would create a secure core NATS connection and pass
-// it in via StreamingConnectionFactory.setNatsConnection(Connection nc)
+// A StreamingConnection is a logical connection to the NATS streaming
+// server.  This API creates an underlying core NATS connection for
+// convenience and simplicity.  In most cases one would create a secure
+// core NATS connection and pass it in via
+// StreamingConnectionFactory.setNatsConnection(Connection nc)
 StreamingConnection sc = cf.createConnection();
 
-// This simple synchronous publish API blocks until an acknowledgement is returned from the server
-// If no exception has been thrown, the message has been stored in NATS streaming.
+// This simple synchronous publish API blocks until an acknowledgement
+// is returned from the server.  If no exception is thrown, the message
+// has been stored in NATS streaming.
 sc.publish("foo", "Hello World".getBytes());
 
-// Use a countdown latch to wait for our subscriber to receive the message we published above.
+// Use a countdown latch to wait for our subscriber to receive the
+// message we published above.
 final CountDownLatch doneSignal = new CountDownLatch(1);
 
 // Simple Async Subscriber that retrieves all available messages.
@@ -95,7 +98,7 @@ doneSignal.await();
 // Unsubscribe to clean up
 sub.unsubscribe();
 
-// Close logical connection with the NATS streaming server
+// Close the logical connection to NATS streaming
 sc.close();
 ```
 
@@ -161,11 +164,12 @@ sc.subscribe("foo", new MessageHandler() {
     }
 }, new SubscriptionOptions.Builder().durableName("my-durable").build());
 
-// client receives message sequence 1-40
+// The client receives message sequence 1-40, then disconnects.
+sc.close();
 
-// client disconnects and meanwhile more messages are published to subject "foo"
+// Meanwhile more messages are published to subject "foo"
 
-// client reconnects with same clientID "client-123"
+// Here the client reconnects with same clientID "client-123"
 sc = new StreamingConnectionFactory("test-cluster", "client-123").createConnection();
 
 // client re-subscribes to "foo" with same durable name "my-durable"
@@ -212,7 +216,8 @@ NATS Streaming offers At-Least-Once delivery semantics, meaning that once a mess
 This timeout interval is specified by the subscription option `AckWait`, which defaults to 30 seconds.
 
 By default, messages are automatically acknowledged by the NATS Streaming client library after the subscriber's message handler is invoked. However, there may be cases in which the subscribing client wishes to accelerate or defer acknowledgement of the message. 
-To do this, the client must set manual acknowledgement mode on the subscription, and invoke `ack()` on the `Msg`. ex:
+To do this, the client must set manual acknowledgement mode on the subscription, and individually acknowledge messages.
+For example:
 
 ```java
 // Subscribe with manual ack mode, and set AckWait to 60 seconds
