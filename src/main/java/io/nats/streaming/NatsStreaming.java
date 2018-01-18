@@ -17,6 +17,7 @@ public final class NatsStreaming {
     static final String PFX = "stan: ";
     static final String ERR_CONNECTION_REQ_TIMEOUT = PFX + "connect request timeout";
     static final String ERR_CLOSE_REQ_TIMEOUT = PFX + "close request timeout";
+    static final String ERR_INVALID_CLUSTER_ID = PFX + "invalid clusterId";    
     static final String ERR_SUB_REQ_TIMEOUT = PFX + "subscribe request timeout";
     static final String ERR_UNSUB_REQ_TIMEOUT = PFX + "unsubscribe request timeout";
     static final String ERR_CONNECTION_CLOSED = PFX + "connection closed";
