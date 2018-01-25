@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class SubscriptionImpl implements Subscription {
 
+    static final long DEFAULT_PUB_WAIT = -1;            // -1 means block forever until can publish
     static final long DEFAULT_ACK_WAIT = 30 * 1000;
     static final int DEFAULT_MAX_IN_FLIGHT = 1024;
 

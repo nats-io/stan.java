@@ -288,7 +288,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     // Publish will publish to the cluster and wait for an ACK.
     @Override
-    public void publish(String subject, byte[] data) throws IOException, InterruptedException {
+    public void publish(String subject, byte[] data) throws IOException, InterruptedException, TimeoutException {
         final BlockingQueue<String> ch = createErrorChannel();
         publish(subject, data, null, ch);
         String err;
@@ -308,15 +308,16 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
      */
     @Override
     public String publish(String subject, byte[] data, AckHandler ah) throws IOException,
-            InterruptedException {
+            InterruptedException, TimeoutException {
         return publish(subject, data, ah, null);
     }
 
     private String publish(String subject, byte[] data, AckHandler ah, BlockingQueue<String> ch)
-            throws IOException, InterruptedException {
+            throws IOException, InterruptedException, TimeoutException {
         String subj;
         String ackSubject;
         Duration ackTimeout;
+        Duration pubTimeout;
         BlockingQueue<PubAck> pac;
         final AckClosure a;
         final PubMsg pe;
@@ -347,6 +348,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             // snapshot
             ackSubject = this.ackSubject;
             ackTimeout = opts.getAckTimeout();
+            pubTimeout = opts.getPubTimeout();
             pac = pubAckChan;
         } finally {
             this.unlock();
@@ -354,7 +356,14 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
         // Use the buffered channel to control the number of outstanding acks.
         try {
-            pac.put(PubAck.getDefaultInstance());
+            if (pubTimeout != null) {
+                if (!pac.offer(PubAck.getDefaultInstance(),pubTimeout.toMillis(),TimeUnit.MILLISECONDS)) {
+                    // could not publish, too many in flight, escalate back to caller
+                    throw new TimeoutException(NatsStreaming.ERR_PUB_TIMEOUT);
+                }
+            } else {
+                pac.put(PubAck.getDefaultInstance());
+            }
         } catch (InterruptedException e) {
             // TODO:  Reevaluate this.
             // Eat this because you can't really do anything with it

@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
  * options. A client uses it to create a connection to the STAN streaming data system.
  */
 public class StreamingConnectionFactory {
+    private Duration pubTimeout = null;     // null pub timeout means forever
     private Duration ackTimeout = Duration.ofMillis(SubscriptionImpl.DEFAULT_ACK_WAIT);
     private Duration connectTimeout = Duration.ofSeconds(NatsStreaming
             .DEFAULT_CONNECT_WAIT);
@@ -49,7 +50,33 @@ public class StreamingConnectionFactory {
     Options options() {
         return new Options.Builder().connectWait(connectTimeout).pubAckWait(ackTimeout)
                 .discoverPrefix(discoverPrefix).maxPubAcksInFlight(maxPubAcksInFlight)
-                .natsConn(natsConn).natsUrl(natsUrl).build();
+                .natsConn(natsConn).natsUrl(natsUrl).pubWait(pubTimeout).build();
+    }
+
+    /**
+     * Returns the pub timeout.
+     *
+     * @return the pubPubWait
+     */
+    public Duration getPubTimeout() { return pubTimeout; }
+
+    /**
+     * Sets the pub timeout duration.
+     *
+     * @param pubTimeout the pubWait to set. pass null for forever.
+     */
+    public void setPubTimeout(Duration pubTimeout) {
+        this.pubTimeout = pubTimeout;
+    }
+
+    /**
+     * Sets the pub timeout in the specified time unit.
+     *
+     * @param pubTimeout the pubWait to set
+     * @param unit       the time unit to set
+     */
+    public void setPubTimeout(long pubTimeout, TimeUnit unit) {
+        this.pubTimeout = Duration.ofMillis(unit.toMillis(pubTimeout));
     }
 
     /**

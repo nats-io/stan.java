@@ -20,6 +20,7 @@ public final class NatsStreaming {
     static final String ERR_SUB_REQ_TIMEOUT = PFX + "subscribe request timeout";
     static final String ERR_UNSUB_REQ_TIMEOUT = PFX + "unsubscribe request timeout";
     static final String ERR_CONNECTION_CLOSED = PFX + "connection closed";
+    static final String ERR_PUB_TIMEOUT = PFX + "publish timeout";
     static final String ERR_TIMEOUT = PFX + "publish ack timeout";
     static final String ERR_BAD_ACK = PFX + "malformed ack";
     static final String ERR_BAD_SUBSCRIPTION = PFX + "invalid subscription";
