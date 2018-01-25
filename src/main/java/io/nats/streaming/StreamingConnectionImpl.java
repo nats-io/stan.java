@@ -215,6 +215,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     }
                 }
 
+                // we won't get the acks back now we've unsubscribed, so clear the acks pending channel
+                // this also unblocks any threads that are trying to publish and are blocked on this channel
+                // they will fail to publish (due to the nats connection having been torn down) and error out
+                pubAckChan.clear();
+
                 if (getHbSubscription() != null) {
                     try {
                         getHbSubscription().unsubscribe();
