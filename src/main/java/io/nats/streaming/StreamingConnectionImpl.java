@@ -317,11 +317,13 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         final PubMsg pe;
         String guid;
         byte[] bytes;
+        io.nats.client.Connection nc;
 
         a = createAckClosure(ah, ch);
         this.lock();
         try {
-            if (getNatsConnection() == null) {
+            nc = getNatsConnection();
+            if (nc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_CONNECTION_CLOSED);
             }
 
@@ -355,7 +357,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
         try {
             nc.publish(subj, ackSubject, bytes, true);
-        } catch (IOException e) {
+        } catch (Exception e) {
             removeAck(guid);
             throw (e);
         }
