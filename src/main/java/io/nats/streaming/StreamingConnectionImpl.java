@@ -66,7 +66,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     Options opts;
     io.nats.client.Connection nc;
 
-    final Timer ackTimer = new Timer(true);
+    final Timer ackTimer = new Timer("jnats-streaming ack timeout thread", true);
 
     boolean ncOwned = false;
 
