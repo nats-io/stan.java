@@ -359,6 +359,14 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             if (pubTimeout != null) {
                 if (!pac.offer(PubAck.getDefaultInstance(),pubTimeout.toMillis(),TimeUnit.MILLISECONDS)) {
                     // could not publish, too many in flight, escalate back to caller
+                    this.lock();
+                    try {
+                        // although we didn't make an entry into the pub ack channel, we did make one into the map,
+                        // clean that up before throwing
+                        pubAckMap.remove(guid);
+                    } finally {
+                        this.unlock();
+                    }
                     throw new TimeoutException(NatsStreaming.ERR_PUB_TIMEOUT);
                 }
             } else {
