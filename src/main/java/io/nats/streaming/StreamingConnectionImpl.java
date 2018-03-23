@@ -124,7 +124,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             Message reply;
             reply = nc.request(discoverSubject, bytes, opts.getConnectTimeout().toMillis());
             if (reply == null) {
-                throw new IOException(ERR_CONNECTION_REQ_TIMEOUT);
+                throw new IOException(ERR_INVALID_CLUSTER_ID);
             }
             ConnectResponse cr = ConnectResponse.parseFrom(reply.getData());
             if (!cr.getError().isEmpty()) {
