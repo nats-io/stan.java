@@ -37,9 +37,6 @@ deploy:
 cache:
   directories:
   - "$HOME/.m2"
-notifications:
-  email:
-  - larry@apcera.com
 env:
   global:
   - GPG_DIR=${TRAVIS_BUILD_DIR}/.travis/keyrings
