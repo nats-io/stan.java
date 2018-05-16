@@ -182,9 +182,11 @@ class SubscriptionImpl implements Subscription {
             throw new IOException(e);
         }
 
-        SubscriptionResponse response = SubscriptionResponse.parseFrom(reply.getData());
-        if (!response.getError().isEmpty()) {
-            throw new IOException(PFX + response.getError());
+        if(reply.getData() != null) {
+            SubscriptionResponse response = SubscriptionResponse.parseFrom(reply.getData());
+            if (!response.getError().isEmpty()) {
+                throw new IOException(PFX + response.getError());
+            }
         }
     }
 
