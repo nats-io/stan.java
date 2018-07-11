@@ -92,44 +92,4 @@ public class PublishTests {
         }
 
     }
-
-    @Test
-    public void testMaxPubAcksInFlight() throws Exception {
-        int timeoutInSeconds = 5;
-        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
-            try (Connection nc = Nats.connect(srv.getURI())) {
-                Options opts = new Options.Builder()
-                        .maxPubAcksInFlight(1)
-                        .pubAckWait(Duration.ofSeconds(timeoutInSeconds))
-                        .natsConn(nc)
-                        .build();
-
-                StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, opts);
-                // Don't defer the close of connection since the server is stopped,
-                // the close would delay the test.
-
-                // Cause the ACK to not come by shutdown the server now
-                srv.shutdown();
-
-                byte[] msg = "hello".getBytes();
-
-                // Send more than one message, if MaxPubAcksInflight() works, one
-                // of the publish call should block for up to PubAckWait.
-                Instant start = Instant.now().minusMillis(100);
-                try {
-                    for (int i = 0; i < 2; i++) {
-                            sc.publish("foo", msg, null);
-                    }
-                } catch (TimeoutException ex) {
-                    ex.printStackTrace();
-                    // Should get one of these for timeout
-                }
-                Instant end = Instant.now().plusMillis(100);
-                // So if the loop ended before the PubAckWait timeout, then it's a failure.
-                if (Duration.between(start, end).compareTo(Duration.ofSeconds(timeoutInSeconds)) < 0) {
-                    fail("Should have blocked after 1 message sent");
-                }
-            }
-        }
-    }
 }
