@@ -95,11 +95,12 @@ public class PublishTests {
 
     @Test
     public void testMaxPubAcksInFlight() throws Exception {
+        int timeoutInSeconds = 5;
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
             try (Connection nc = Nats.connect(srv.getURI())) {
                 Options opts = new Options.Builder()
                         .maxPubAcksInFlight(1)
-                        .pubAckWait(Duration.ofSeconds(2))
+                        .pubAckWait(Duration.ofSeconds(timeoutInSeconds))
                         .natsConn(nc)
                         .build();
 
@@ -125,7 +126,7 @@ public class PublishTests {
                 }
                 Instant end = Instant.now().plusMillis(100);
                 // So if the loop ended before the PubAckWait timeout, then it's a failure.
-                if (Duration.between(start, end).compareTo(Duration.ofSeconds(1)) < 0) {
+                if (Duration.between(start, end).compareTo(Duration.ofSeconds(timeoutInSeconds)) < 0) {
                     fail("Should have blocked after 1 message sent");
                 }
             }
