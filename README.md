@@ -37,7 +37,7 @@ The NATs client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:java-nats-streaming:2.0-SNAPSOT'
+    implementation 'io.nats:java-nats-streaming:2.0-SNAPSHOT'
 }
 ```
 
