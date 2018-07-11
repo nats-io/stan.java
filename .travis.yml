@@ -24,6 +24,8 @@ cache:
   - "$HOME/.gradle/wrapper/"
 after_success:
 - "./gradlew test jacocoTestReport coveralls"
+- "./gradlew uploadArchives"
+- "test ${TRAVIS_PULL_REQUEST} = 'false' && test ${TRAVIS_BRANCH} = 'master' && ./gradlew closeAndReleaseRepository"
 env:
   global:
   - stan_version=v0.10.2

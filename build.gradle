@@ -10,7 +10,26 @@ plugins {
     id "io.codearte.nexus-staging" version "0.11.0"
 }
 
-version = '2.0-SNAPSHOT'
+// Update version here, repeated check-ins not into master will have snapshot on them
+def versionMajor = 2
+def versionMinor = 0
+def versionPatch = 0
+def versionModifier = "-beta"
+def branch = System.getenv("TRAVIS_BRANCH");
+
+def getVersionName = { ->
+    if ("true".equals(System.getenv("TRAVIS_PULL_REQUEST")) || !"master".equals(branch))  {
+        versionModifier = "-SNAPSHOT"
+    }
+
+    if (versionModifier != null && versionModifier.length() > 0) {
+        return "" + versionMajor + "." + versionMinor + "." + versionPatch + versionModifier
+    } else {
+        return "" + versionMajor + "." + versionMinor + "." + versionPatch
+    }
+}
+
+version = getVersionName()
 archivesBaseName = 'java-nats-streaming'
 group = 'io.nats'
 
