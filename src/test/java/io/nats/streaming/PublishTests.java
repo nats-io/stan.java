@@ -99,7 +99,7 @@ public class PublishTests {
             try (Connection nc = Nats.connect(srv.getURI())) {
                 Options opts = new Options.Builder()
                         .maxPubAcksInFlight(1)
-                        .pubAckWait(Duration.ofSeconds(1))
+                        .pubAckWait(Duration.ofSeconds(2))
                         .natsConn(nc)
                         .build();
 
