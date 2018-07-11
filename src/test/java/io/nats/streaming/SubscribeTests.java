@@ -754,13 +754,13 @@ public class SubscribeTests {
                         new SubscriptionOptions.Builder().deliverAllAvailable().build())) {
 
                     // Wait for our expected count.
-                    assertTrue("Did not receive our messages", latch.await(5, TimeUnit.SECONDS));
+                    assertTrue("Did not receive our messages", latch.await(10, TimeUnit.SECONDS));
 
                     // Wait to see if the subscriber receives any duplicate messages.
-                    try{Thread.sleep(250);}catch(Exception exp){}
+                    try{Thread.sleep(1000);}catch(Exception exp){}
 
                     // Make sure we've received the exact count of sent messages.
-                    assertEquals("Didn't get expected #messages.", sent.get(), received.get());
+                    assertEquals("Didn't get expected number of messages.", sent.get(), received.get());
 
                 }
             }

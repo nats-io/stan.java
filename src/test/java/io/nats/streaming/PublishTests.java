@@ -114,7 +114,7 @@ public class PublishTests {
 
                 // Send more than one message, if MaxPubAcksInflight() works, one
                 // of the publish call should block for up to PubAckWait.
-                Instant start = Instant.now();
+                Instant start = Instant.now().minusMillis(100);
                 try {
                     for (int i = 0; i < 2; i++) {
                             sc.publish("foo", msg, null);
@@ -123,7 +123,7 @@ public class PublishTests {
                     ex.printStackTrace();
                     // Should get one of these for timeout
                 }
-                Instant end = Instant.now();
+                Instant end = Instant.now().plusMillis(100);
                 // So if the loop ended before the PubAckWait timeout, then it's a failure.
                 if (Duration.between(start, end).compareTo(Duration.ofSeconds(1)) < 0) {
                     fail("Should have blocked after 1 message sent");
