@@ -24,7 +24,7 @@ if (System.getenv('SONATYPE_USERNAME') != null) {
 }
 
 repositories {
-    mavenCentral()
+    jcenter()
     maven {
         url "https://oss.sonatype.org/content/repositories/releases"
     }
