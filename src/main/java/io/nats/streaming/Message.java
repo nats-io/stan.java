@@ -179,7 +179,7 @@ public class Message {
     /**
      * Determines whether or not this message has been redelivered to this client's connection.
      * 
-     * @return {@code true} if the STAN cluster believes this message has been redelivered,
+     * @return {@code true} if the streaming cluster believes this message has been redelivered,
      *         otherwise {@code false}
      */
     public boolean isRedelivered() {
@@ -196,7 +196,7 @@ public class Message {
     }
 
     /**
-     * Acknowledges the message to the STAN cluster.
+     * Acknowledges the message to the streaming cluster.
      * 
      * @throws IOException if an I/O exception occurs
      */

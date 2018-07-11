@@ -13,14 +13,11 @@
 
 package io.nats.streaming.examples;
 
-import io.nats.benchmark.Benchmark;
-import io.nats.benchmark.Sample;
-import io.nats.client.AsyncSubscription;
-import io.nats.client.ClosedCallback;
-import io.nats.client.ConnectionEvent;
-import io.nats.client.DisconnectedCallback;
-import io.nats.client.ExceptionHandler;
-import io.nats.client.NATSException;
+import io.nats.streaming.examples.benchmark.Benchmark;
+import io.nats.streaming.examples.benchmark.Sample;
+import io.nats.client.Connection;
+import io.nats.client.Consumer;
+import io.nats.client.ErrorListener;
 import io.nats.client.NUID;
 import io.nats.client.Nats;
 import io.nats.streaming.AckHandler;
@@ -40,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -68,7 +66,7 @@ public class StanBench {
     private String clientId = "benchmark";
     private String clusterId = "test-cluster";
 
-    private String urls = Nats.DEFAULT_URL;
+    private String urls = io.nats.client.Options.DEFAULT_URL;
     private String subject;
     private final AtomicInteger published = new AtomicInteger();
     private final AtomicInteger received = new AtomicInteger();
@@ -180,75 +178,52 @@ public class StanBench {
         }
 
         public void runSubscriber() throws Exception {
-            final io.nats.client.Connection nc = Nats.connect(urls, natsOptions);
-            nc.setDisconnectedCallback(new DisconnectedCallback() {
-                @Override
-                public void onDisconnect(ConnectionEvent ev) {
-                    System.err.printf("Subscriber disconnected after %d msgs", received.get());
+            try (final io.nats.client.Connection nc = Nats.connect(natsOptions)) {
+                io.nats.streaming.Options opts = new io.nats.streaming.Options.Builder()
+                        .natsConn(nc)
+                        .build();
+
+                final StreamingConnection sc = NatsStreaming.connect(clusterId, clientId, opts);
+                final SubscriptionOptions sopts;
+
+                if (ignoreOld) {
+                    sopts = new SubscriptionOptions.Builder().deliverAllAvailable().build();
+                } else {
+                    sopts = new SubscriptionOptions.Builder().build();
                 }
-            });
-            nc.setClosedCallback(new ClosedCallback() {
-                @Override
-                public void onClose(ConnectionEvent ev) {
-                    System.err.printf("Subscriber connection closed after %d msgs", received.get());
-                }
-            });
-            nc.setExceptionHandler(new ExceptionHandler() {
-                @Override
-                public void onException(NATSException ex) {
-                    System.err.printf("Subscriber connection exception", ex);
-                    AsyncSubscription sub = (AsyncSubscription) ex.getSubscription();
-                    System.err.printf("Sent=%d, Received=%d", published.get(), received.get());
-                    System.err.printf("Messages dropped (total) = %d", sub.getDropped());
-                    System.exit(-1);
-                }
-            });
-            io.nats.streaming.Options opts = new io.nats.streaming.Options.Builder()
-                    .natsConn(nc)
-                    .build();
 
-            final StreamingConnection sc = NatsStreaming.connect(clusterId, clientId, opts);
-            final SubscriptionOptions sopts;
+                final long start = System.nanoTime();
 
-            if (ignoreOld) {
-                sopts = new SubscriptionOptions.Builder().deliverAllAvailable().build();
-            } else {
-                sopts = new SubscriptionOptions.Builder().build();
-            }
-
-            final long start = System.nanoTime();
-
-            final Subscription sub = sc.subscribe(subject, new MessageHandler() {
-                @Override
-                public void onMessage(Message msg) {
-                    received.incrementAndGet();
-                    if (received.get() >= numMsgs) {
-                        bench.addSubSample(new Sample(numMsgs, size, start, System.nanoTime(), nc));
-                        System.out.printf("Subscriber connection stats: " + nc.getStats());
-                        phaser.arrive();
-                        nc.setDisconnectedCallback(null);
-                        nc.setClosedCallback(null);
-                        try {
-                            sc.close();
-                        } catch (IOException | TimeoutException e) {
-                            System.err.printf(
-                                    "streaming-bench: "
-                                            + "exception thrown during subscriber connection close",
-                                    e);
-                        } catch (InterruptedException e) {
-                            System.err.printf("Interrupted during subscriber connection close", e);
-                            Thread.currentThread().interrupt();
+                final Subscription sub = sc.subscribe(subject, new MessageHandler() {
+                    @Override
+                    public void onMessage(Message msg) {
+                        received.incrementAndGet();
+                        if (received.get() >= numMsgs) {
+                            bench.addSubSample(new Sample(numMsgs, size, start, System.nanoTime(), nc.getStatistics()));
+                            System.out.printf("Subscriber connection stats: " + nc.getStatistics());
+                            phaser.arrive();
+                            try {
+                                sc.close();
+                            } catch (IOException | TimeoutException e) {
+                                System.err.printf(
+                                        "streaming-bench: "
+                                                + "exception thrown during subscriber connection close",
+                                        e);
+                            } catch (InterruptedException e) {
+                                System.err.printf("Interrupted during subscriber connection close", e);
+                                Thread.currentThread().interrupt();
+                            }
                         }
                     }
-                }
-            }, sopts);
+                }, sopts);
 
-            phaser.arrive();
-            while (received.get() < numMsgs) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    break;
+                phaser.arrive();
+                while (received.get() < numMsgs) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
                 }
             }
         }
@@ -256,13 +231,10 @@ public class StanBench {
 
     class PubWorker extends Worker {
         private final boolean async;
-        private final int maxPubAcks;
 
-        PubWorker(Phaser phaser, int numMsgs, int size, boolean async, String pubId,
-                int maxPubAcks) {
+        PubWorker(Phaser phaser, int numMsgs, int size, boolean async, String pubId) {
             super(phaser, numMsgs, size, pubId);
             this.async = async;
-            this.maxPubAcks = maxPubAcks;
         }
 
         @Override
@@ -277,59 +249,60 @@ public class StanBench {
         }
 
         public void runPublisher() throws Exception {
-            final io.nats.client.Connection nc = Nats.connect(urls, natsOptions);
-            Options pubOpts;
-            if (maxPubAcksInFlight > 0) {
-                pubOpts = new Options.Builder()
-                        .maxPubAcksInFlight(maxPubAcksInFlight)
-                        .natsConn(nc)
-                        .build();
-            } else {
-                pubOpts = new Options.Builder()
-                        .natsConn(nc)
-                        .build();
-            }
-            try (StreamingConnection sc =
-                         NatsStreaming.connect(clusterId, workerClientId, pubOpts)) {
-
-                byte[] msg = null;
-                if (size > 0) {
-                    msg = new byte[size];
+            try (final io.nats.client.Connection nc = Nats.connect(natsOptions)) {
+                Options pubOpts;
+                if (maxPubAcksInFlight > 0) {
+                    pubOpts = new Options.Builder()
+                            .maxPubAcksInFlight(maxPubAcksInFlight)
+                            .natsConn(nc)
+                            .build();
+                } else {
+                    pubOpts = new Options.Builder()
+                            .natsConn(nc)
+                            .build();
                 }
+                try (StreamingConnection sc =
+                            NatsStreaming.connect(clusterId, workerClientId, pubOpts)) {
 
-                final long start = System.nanoTime();
+                    byte[] msg = null;
+                    if (size > 0) {
+                        msg = new byte[size];
+                    }
 
-                if (async) {
-                    CountDownLatch latch = new CountDownLatch(1);
-                    AckHandler acb = new AckHandler() {
-                        public void onAck(String nuid, Exception ex) {
-                            if (published.incrementAndGet() >= numMsgs) {
-                                latch.countDown();
+                    final long start = System.nanoTime();
+
+                    if (async) {
+                        CountDownLatch latch = new CountDownLatch(1);
+                        AckHandler acb = new AckHandler() {
+                            public void onAck(String nuid, Exception ex) {
+                                if (published.incrementAndGet() >= numMsgs) {
+                                    latch.countDown();
+                                }
+                            }
+                        };
+                        for (int i = 0; i < numMsgs; i++) {
+                            try {
+                                sc.publish(subject, msg, acb);
+                            } catch (Exception e) {
+                                System.err.printf("streaming-bench: error during publish", e);
                             }
                         }
-                    };
-                    for (int i = 0; i < numMsgs; i++) {
-                        try {
-                            sc.publish(subject, msg, acb);
-                        } catch (Exception e) {
-                            System.err.printf("streaming-bench: error during publish", e);
+                        latch.await();
+                    } else {
+                        for (int i = 0; i < numMsgs; i++) {
+                            try {
+                                sc.publish(subject, msg);
+                                published.incrementAndGet();
+                            } catch (Exception e) {
+                                System.err.printf("streaming-bench: error during publish", e);
+                            }
                         }
                     }
-                    latch.await();
-                } else {
-                    for (int i = 0; i < numMsgs; i++) {
-                        try {
-                            sc.publish(subject, msg);
-                            published.incrementAndGet();
-                        } catch (Exception e) {
-                            System.err.printf("streaming-bench: error during publish", e);
-                        }
-                    }
-                }
 
-                bench.addPubSample(new Sample(numMsgs, size, start, System.nanoTime(), nc));
-                System.out.printf("Publisher connection stats: \n" + nc.getStats());
-            } // StreamingConnection
+                    bench.addPubSample(new Sample(numMsgs, size, start, System.nanoTime(), nc.getStatistics()));
+                    System.out.printf("Publisher connection stats: \n" + nc.getStatistics());
+                } // StreamingConnection
+            }
         }
     }
 
@@ -345,13 +318,38 @@ public class StanBench {
         installShutdownHook();
 
         phaser.register();
+        
+        String[] servers = urls.split(",");
+        io.nats.client.Options.Builder builder = new io.nats.client.Options.Builder();
+        builder.noReconnect();
+        builder.connectionName("StanBench");
+        builder.servers(servers);
+
         if (secure) {
-            natsOptions = new io.nats.client.Options.Builder().secure().noReconnect().build();
-        } else {
-            natsOptions = new io.nats.client.Options.Builder().noReconnect().build();
+            builder.secure();
         }
 
-        bench = new Benchmark("NATS Streaming", numSubs, numPubs);
+        builder.errorListener(new ErrorListener(){
+            @Override
+            public void slowConsumerDetected(Connection conn, Consumer consumer) {
+                System.err.println("Slow consumer detected on client side.");
+            }
+        
+            @Override
+            public void exceptionOccurred(Connection conn, Exception ex) {
+                System.err.printf("Connection exception %s, connection status is %s\n", ex, conn.getStatus());
+                System.err.printf("Sent=%d, Received=%d\n", published.get(), received.get());
+            }
+        
+            @Override
+            public void errorOccurred(Connection conn, String err) {
+                System.err.println("Error message from server "+err);
+            }
+        });
+
+        natsOptions = builder.build();
+
+        bench = new Benchmark("NATS Streaming");
 
         // Run Subscribers first
         for (int i = 0; i < numSubs; i++) {
@@ -364,12 +362,11 @@ public class StanBench {
         phaser.arriveAndAwaitAdvance();
 
         // Now publishers
-        List<Integer> pubCounts = io.nats.benchmark.Utils.msgsPerClient(numMsgs, numPubs);
+        List<Integer> pubCounts = io.nats.streaming.examples.benchmark.Utils.msgsPerClient(numMsgs, numPubs);
         for (int i = 0; i < numPubs; i++) {
             phaser.register();
             String pubId = String.format("%s-pub-%d", clientId, i);
-            exec.execute(new PubWorker(phaser, pubCounts.get(i), size, async, pubId,
-                    maxPubAcksInFlight));
+            exec.execute(new PubWorker(phaser, pubCounts.get(i), size, async, pubId));
         }
 
         System.out.printf("Starting benchmark [msgs=%d, msgsize=%d, pubs=%d, subs=%d]\n", numMsgs,
@@ -385,10 +382,12 @@ public class StanBench {
         System.out.println(bench.report());
 
         if (csvFileName != null) {
-            List<String> csv = bench.csv();
+            String csv = bench.csv();
             Path csvFile = Paths.get(csvFileName);
-            Files.write(csvFile, csv, Charset.forName("UTF-8"));
+            Files.write(csvFile, Collections.singletonList(csv), Charset.forName("UTF-8"));
         }
+
+        exec.shutdown();
     }
 
     private void installShutdownHook() {

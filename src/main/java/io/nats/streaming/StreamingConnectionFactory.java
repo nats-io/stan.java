@@ -20,10 +20,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A {@code StreamingConnectionFactory} object encapsulates a set of connection configuration
- * options. A client uses it to create a connection to the STAN streaming data system.
+ * options. A client uses it to create a connection to the NATS streaming data system.
  */
 public class StreamingConnectionFactory {
-    private Duration ackTimeout = Duration.ofMillis(SubscriptionImpl.DEFAULT_ACK_WAIT);
+    private Duration ackTimeout = SubscriptionOptions.DEFAULT_ACK_WAIT;
     private Duration connectTimeout = Duration.ofSeconds(NatsStreaming
             .DEFAULT_CONNECT_WAIT);
     private String discoverPrefix = NatsStreaming.DEFAULT_DISCOVER_PREFIX;
@@ -50,7 +50,9 @@ public class StreamingConnectionFactory {
      *                              be established
      */
     public StreamingConnection createConnection() throws IOException, InterruptedException {
-        return new StreamingConnectionImpl(clusterId, clientId, options()).connect();
+        StreamingConnectionImpl conn = new StreamingConnectionImpl(clusterId, clientId, options());
+        conn.connect();
+        return conn;
     }
 
     Options options() {
@@ -126,7 +128,7 @@ public class StreamingConnectionFactory {
     }
 
     /**
-     * Sets the discover prefix string that is used to establish a STAN session.
+     * Sets the discover prefix string that is used to establish a nats streaming session.
      *
      * @param discoverPrefix the discoverPrefix to set
      */
@@ -199,16 +201,16 @@ public class StreamingConnectionFactory {
 
 
     /**
-     * Returns the client ID of the current STAN session.
+     * Returns the client ID of the current NATS streaming session.
      *
-     * @return the client ID of the current STAN session
+     * @return the client ID of the current NATS streaming session
      */
     public String getClientId() {
         return clientId;
     }
 
     /**
-     * Sets the client ID for the current STAN session.
+     * Sets the client ID for the current NATS streaming session.
      *
      * @param clientId the clientId to set
      */
@@ -220,7 +222,7 @@ public class StreamingConnectionFactory {
     }
 
     /**
-     * Returns the cluster ID of the current STAN session.
+     * Returns the cluster ID of the current NATS streaming session.
      *
      * @return the clusterId
      */
@@ -229,7 +231,7 @@ public class StreamingConnectionFactory {
     }
 
     /**
-     * Sets the cluster ID of the current STAN session.
+     * Sets the cluster ID of the current NATS streaming session.
      *
      * @param clusterId the clusterId to set
      */

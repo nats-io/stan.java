@@ -13,59 +13,24 @@
 
 package io.nats.streaming;
 
-import static io.nats.streaming.NatsStreaming.ERR_CONNECTION_REQ_TIMEOUT;
-import static io.nats.streaming.UnitTestUtilities.runServer;
-import static io.nats.streaming.UnitTestUtilities.testClusterName;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.nats.client.Nats;
 import io.nats.streaming.examples.Publisher;
 import io.nats.streaming.examples.Subscriber;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 
-@Category(IntegrationTest.class)
-public class SubscriberTest {
-
-    private static final String clusterId = UnitTestUtilities.testClusterName;
-
-    ExecutorService service = Executors.newCachedThreadPool();
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @Rule
-    public TestCasePrinterRule pr = new TestCasePrinterRule(System.out);
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {}
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {}
-
-    @Before
-    public void setUp() throws Exception {}
-
-    @After
-    public void tearDown() throws Exception {}
+public class SubscriberExampleTests {
+    private static final String clusterName = "test-cluster";
 
     @Test
     public void testSubscriberStringArray() throws Exception {
         List<String> argList = new ArrayList<String>();
-        argList.addAll(Arrays.asList("-c", UnitTestUtilities.testClusterName));
+        argList.addAll(Arrays.asList("-c", clusterName));
         argList.add("foo");
 
         String[] args = new String[argList.size()];
@@ -118,25 +83,21 @@ public class SubscriberTest {
 
     @Test(timeout = 5000)
     public void testMainSuccess() throws Exception {
-        try (NatsStreamingServer srv = runServer(testClusterName)) {
-            Publisher.main(new String[] { "-c", clusterId, "foo", "bar" });
-            Subscriber.main(new String[] { "-c", clusterId, "--all", "--count", "1", "foo" });
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Publisher.main(new String[] { "-s", srv.getURI(), "-c", clusterName, "foo", "bar" });
+            Subscriber.main(new String[] {"-s", srv.getURI(), "-c", clusterName, "--all", "--count", "1", "foo" });
         }
     }
 
-    @Test
+    @Test(expected=IOException.class)
     public void testMainFailsNoServers() throws Exception {
-        thrown.expect(IOException.class);
-        thrown.expectMessage(Nats.ERR_NO_SERVERS);
         Subscriber.main(new String[] { "-s", "nats://enterprise:4242", "foobar" });
     }
 
-    @Test
+    @Test(expected=IOException.class)
     public void testMainFailsTimeout() throws Exception {
-        thrown.expect(IOException.class);
-        thrown.expectMessage(ERR_CONNECTION_REQ_TIMEOUT);
-        try (NatsStreamingServer srv = runServer(testClusterName)) {
-            Subscriber.main(new String[] {"-c", "nonexistent-cluster", "foobar"});
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Subscriber.main(new String[] {"-s", srv.getURI(),"-c", "nonexistent-cluster", "foobar"});
         }
     }
 }

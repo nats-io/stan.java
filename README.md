@@ -1,28 +1,86 @@
-![](https://raw.githubusercontent.com/nats-io/nats-site/master/src/img/large-logo.png)
-# NATS Streaming Java Client
-NATS Streaming is an extremely performant, lightweight reliable streaming platform powered by NATS.
+![NATS](src/main/javadoc/images/large-logo.png)
+
+# NATS - Streaming Java Client
+
+A [Java](http://java.com) client for the [NATS streaming platform](https://nats.io).
 
 [![License Apache 2.0](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Build Status](https://travis-ci.org/nats-io/java-nats-streaming.svg?branch=master)](http://travis-ci.org/nats-io/java-nats-streaming)
-[![Coverage Status](https://coveralls.io/repos/github/nats-io/java-nats-streaming/badge.svg?branch=master&t=YxbrCO)](https://coveralls.io/github/nats-io/java-nats-streaming?branch=master)
+[![Build Status](https://travis-ci.org/nats-io/java-nats-streaming.svg?branch=version2)](http://travis-ci.org/nats-io/java-nats-streaming?branch=version2)
+[![Coverage Status](https://coveralls.io/repos/github/nats-io/java-nats-streaming/badge.svg?branch=version2)](https://coveralls.io/github/nats-io/java-nats-streaming?branch=version2)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
-[![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
+[![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg?branch=2.0-beta)](http://javadoc.io/doc/io.nats/java-nats-streaming?branch=2.0-beta)
 
 [![Dependency Status](https://www.versioneye.com/user/projects/57c07fd1968d6400336022f2/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/57c07fd1968d6400336022f2)
 [![Reference Status](https://www.versioneye.com/java/io.nats:java-nats-streaming/reference_badge.svg?style=flat-square)](https://www.versioneye.com/java/io.nats:java-nats-streaming/references)
 
+## A Note on Versions
+
+This is version 2.0-beta of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+
+One big change is the move to gradle, and away from maven, as with the NATs library. Please see the instructions below for [Building From Source](#building-from-source). The maven artifacts are still available in the same place, so should be usable without changing your application build files.
+
+Previous versions are still available in the repo.
+
 ## Installation
 
-### Maven Central
+The nats streaming client requires two jar files to run, the java nats library and the streaming library. See [Building From Source](#building-from-source) for details on building the library.
 
-#### Releases
+### Downloading the Jar
 
-Current stable release (click for pom info): [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
+You can download the latest java nats jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.0-beta/jnats-2.0-beta.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.0-beta/jnats-2.0-beta.jar).
 
-#### Snapshots
+You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.0-SNAPSHOT/java-nats-streaming-2.0-SNAPSHOT.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.0-SNAPSHOT/java-nats-streaming-2.0-SNAPSHOT.jar).
 
-Snapshot releases from the current `master` branch are uploaded to Sonatype OSSRH (OSS Repository Hosting) with each successful Travis CI build. 
-If you don't already have your pom.xml configured for using Maven snapshots, you'll need to add the following repository to your pom.xml:
+### Using Gradle
+
+The NATs client is available in the Maven central repository, and can be imported as a standard dependency in your `build.gradle` file:
+
+```groovy
+dependencies {
+    implementation 'io.nats:java-nats-streaming:2.0-SNAPSOT'
+}
+```
+
+If you need the latest and greatest before Maven central updates, you can use:
+
+```groovy
+repositories {
+    mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/releases"
+    }
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+}
+```
+
+### Using Maven
+
+The NATs client is available on the Maven central repository, and can be imported as a normal dependency in your pom.xml file:
+
+```xml
+<dependency>
+    <groupId>io.nats</groupId>
+    <artifactId>java-nats-streaming</artifactId>
+    <version>2.0-SNAPSHOT</version>
+</dependency>
+```
+
+If you need the absolute latest, before it propagates to maven central, you can use the repository:
+
+```xml
+<repositories>
+    <repository>
+        <id>latest-repo</id>
+        <url>https://oss.sonatype.org/content/repositories/releases</url>
+        <releases><enabled>true</enabled></releases>
+        <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+</repositories>
+```
+
+For snapshot releases, you'll need to add the following repository to your pom.xml:
 
 ```xml
 <profiles>
@@ -41,24 +99,10 @@ If you don't already have your pom.xml configured for using Maven snapshots, you
 </profiles>
 
 ```
-#### Building from source code (this repository)
-First, download and install the parent POM:
-```
-git clone git@github.com:nats-io/nats-parent-pom.git
-cd nats-parent-pom
-mvn install
-```
 
-Now clone, compile, and install in your local maven repository (or copy the artifacts from the `target/` directory to wherever you need them):
-```
-git clone git@github.com:/nats-io/java-nats-streaming.git
-cd java-nats-streaming
-mvn install
-```
+### Linux Platform Note
 
-## Platform Notes
-### Linux
-We use RNG to generate unique inbox names. A peculiarity of the JDK on Linux (see [JDK-6202721] (https://bugs.openjdk.java.net/browse/JDK-6202721) and [JDK-6521844](https://bugs.openjdk.java.net/browse/JDK-6521844)) causes Java to use `/dev/random` even when `/dev/urandom` is called for. The net effect on java-nats-streaming is that client connection startup will be very slow. The standard workaround is to add this to your JVM options:
+NATS uses RNG to generate unique inbox names. A peculiarity of the JDK on Linux (see [JDK-6202721](https://bugs.openjdk.java.net/browse/JDK-6202721) and [JDK-6521844](https://bugs.openjdk.java.net/browse/JDK-6521844)) causes Java to use `/dev/random` even when `/dev/urandom` is called for. The net effect is that successive calls to `newInbox()`, either directly or through calling `request()` will become very slow, on the order of seconds, making many applications unusable if the issue is not addressed. A simple workaround would be to use the following jvm args.
 
 `-Djava.security.egd=file:/dev/./urandom`
 
@@ -102,10 +146,9 @@ sub.unsubscribe();
 sc.close();
 ```
 
-### Subscription Start (i.e. Replay) Options 
+### Subscription Start (i.e. Replay) Options
 
-NATS Streaming subscriptions are similar to NATS subscriptions, but clients may start their subscription at an earlier point in the message stream, allowing them to receive messages that were published before this client registered interest. 
-The options are described with examples below:
+NATS Streaming subscriptions are similar to NATS subscriptions, but clients may start their subscription at an earlier point in the message stream, allowing them to receive messages that were published before this client registered interest. The options are described with examples below:
 
 ```java
 
@@ -149,10 +192,7 @@ sc.subscribe("foo", new MessageHandler() {
 
 ### Durable Subscriptions
 
-Replay of messages offers great flexibility for clients wishing to begin processing at some earlier point in the data stream. 
-However, some clients just need to pick up where they left off from an earlier session, without having to manually track their position in the stream of messages. 
-Durable subscriptions allow clients to assign a durable name to a subscription when it is created. 
-Doing this causes the NATS Streaming server to track the last acknowledged message for that clientID + durable name, so that only messages since the last acknowledged message will be delivered to the client.
+Replay of messages offers great flexibility for clients wishing to begin processing at some earlier point in the data stream. However, some clients just need to pick up where they left off from an earlier session, without having to manually track their position in the stream of messages. Durable subscriptions allow clients to assign a durable name to a subscription when it is created. Doing this causes the NATS Streaming server to track the last acknowledged message for that clientID + durable name, so that only messages since the last acknowledged message will be delivered to the client.
 
 ```java
 StreamingConnection sc = new StreamingConnectionFactory("test-cluster", "client-123").createConnection();
@@ -186,7 +226,7 @@ sc.subscribe("foo", new MessageHandler() {
 
 NATS Streaming subscriptions **do not** support wildcards.
 
-## Advanced Usage 
+## Advanced Usage
 
 ### Asynchronous Publishing
 
@@ -212,11 +252,9 @@ String guid = sc.publish("foo", "Hello World".getBytes(), ackHandler);
 
 ### Message Acknowledgements and Redelivery
 
-NATS Streaming offers At-Least-Once delivery semantics, meaning that once a message has been delivered to an eligible subscriber, if an acknowledgement is not received within the configured timeout interval, NATS Streaming will attempt redelivery of the message. 
-This timeout interval is specified by the subscription option `AckWait`, which defaults to 30 seconds.
+NATS Streaming offers At-Least-Once delivery semantics, meaning that once a message has been delivered to an eligible subscriber, if an acknowledgement is not received within the configured timeout interval, NATS Streaming will attempt redelivery of the message. This timeout interval is specified by the subscription option `AckWait`, which defaults to 30 seconds.
 
-By default, messages are automatically acknowledged by the NATS Streaming client library after the subscriber's message handler is invoked. However, there may be cases in which the subscribing client wishes to accelerate or defer acknowledgement of the message. 
-To do this, the client must set manual acknowledgement mode on the subscription, and individually acknowledge messages.
+By default, messages are automatically acknowledged by the NATS Streaming client library after the subscriber's message handler is invoked. However, there may be cases in which the subscribing client wishes to accelerate or defer acknowledgement of the message. To do this, the client must set manual acknowledgement mode on the subscription, and individually acknowledge messages.
 For example:
 
 ```java
@@ -237,9 +275,7 @@ sc.subscribe("foo", new MessageHandler() {
 
 ## Rate limiting/matching
 
-A classic problem of publish-subscribe messaging is matching the rate of message producers with the rate of message consumers. 
-Message producers can often outpace the speed of the subscribers that are consuming their messages. 
-This mismatch is commonly called a "fast producer/slow consumer" problem, and may result in dramatic resource utilization spikes in the underlying messaging system as it tries to buffer messages until the slow consumer(s) can catch up.
+A classic problem of publish-subscribe messaging is matching the rate of message producers with the rate of message consumers. Message producers can often outpace the speed of the subscribers that are consuming their messages. This mismatch is commonly called a "fast producer/slow consumer" problem, and may result in dramatic resource utilization spikes in the underlying messaging system as it tries to buffer messages until the slow consumer(s) can catch up.
 
 ### Publisher rate limiting
 
@@ -267,9 +303,7 @@ for (int i = 1; i < 1000; i++) {
 
 ### Subscriber rate limiting
 
-Rate limiting may also be accomplished on the subscriber side, on a per-subscription basis, using a subscription option called `MaxInFlight`. 
-This option specifies the maximum number of outstanding acknowledgements (messages that have been delivered but not acknowledged) that NATS Streaming will allow for a given subscription. 
-When this limit is reached, NATS Streaming will suspend delivery of messages to this subscription until the number of unacknowledged messages falls below the specified limit. ex:
+Rate limiting may also be accomplished on the subscriber side, on a per-subscription basis, using a subscription option called `MaxInFlight`. This option specifies the maximum number of outstanding acknowledgements (messages that have been delivered but not acknowledged) that NATS Streaming will allow for a given subscription. When this limit is reached, NATS Streaming will suspend delivery of messages to this subscription until the number of unacknowledged messages falls below the specified limit. ex:
 
 ```java
 
@@ -289,6 +323,41 @@ sc.subscribe("foo", new MessageHandler() {
     }
 }, new SubscriptionOptions.Builder().manualAcks().maxInFlight(25).build());
 ```
+
+## Building From Source
+
+The build depends on Gradle, and contains `gradlew` to simplify the process. After cloning, you can build the repository and run the tests with a single command:
+
+```bash
+> git clone https://github.com/nats-io/java-nats.git
+> cd java-nats
+> ./gradlew build
+```
+
+This will place the class files in a new `build` folder. To just build the jar:
+
+```bash
+> ./gradlew jar
+```
+
+The jar will be placed in `build/libs`.
+
+You can also build the java doc, and the samples jar using:
+
+```bash
+> ./gradlew javadoc
+> ./gradlew exampleJar
+```
+
+The java doc is located in `build/docs` and the example jar is in `build/libs`. Finally, to run the tests with the coverage report:
+
+```bash
+> ./gradlew test jacocoTestReport
+```
+
+which will create a folder called `build/reports/jacoco` containing the file `index.html` you can open and use to browse the coverage. Keep in mind we have focused on library test coverage, not coverage for the examples.
+
+Many of the tests run gnatsd on a custom port. If gnatsd is in your path they should just work, but in cases where it is not, or an IDE running tests has issues with the path you can specify the gnatsd location with the environment variable `gnatsd_path`.
 
 ## License
 

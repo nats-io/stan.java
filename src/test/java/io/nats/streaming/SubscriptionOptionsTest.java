@@ -22,21 +22,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
-@Category(UnitTest.class)
 public class SubscriptionOptionsTest {
 
     private static SubscriptionOptions testOpts;
-
-    @Rule
-    public TestCasePrinterRule pr = new TestCasePrinterRule(System.out);
 
     /**
      * Setup for all cases in this test.
@@ -53,15 +44,6 @@ public class SubscriptionOptionsTest {
                 .durableName("foo").manualAcks().maxInFlight(10000)
                 .startAtSequence(12345).build();
     }
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {}
-
-    @Before
-    public void setUp() throws Exception {}
-
-    @After
-    public void tearDown() throws Exception {}
 
     /**
      * Test method for {@link io.nats.streaming.SubscriptionOptions#getDurableName()}.
@@ -165,22 +147,76 @@ public class SubscriptionOptionsTest {
     public void testStartAtTimeDelta() {
         long delta = 50000;
         TimeUnit unit = TimeUnit.MILLISECONDS;
+
+        // Add some leeway to reduce flakiness
+        Instant before = Instant.now().minusMillis(delta+100);
         SubscriptionOptions opts =
                 new SubscriptionOptions.Builder().startAtTimeDelta(delta, unit).build();
-        Instant expected = Instant.now().minusMillis(delta);
+        Instant after = Instant.now().minusMillis(delta-100);
         assertEquals(StartPosition.TimeDeltaStart, opts.getStartAt());
-        String.format("Start time: expected %s but was %s", opts.getStartTime(), expected);
-        assertTrue(opts.getStartTime().equals(expected));
+        assertTrue(opts.getStartTime().isAfter(before) && opts.getStartTime().isBefore(after));
     }
 
     @Test
-    public void testEquals(){
-        assertEquals(buildSubscriptionOptions(), buildSubscriptionOptions());
-    }
+    public void testHashcodeEqualsAndToString(){
+        SubscriptionOptions opts = new SubscriptionOptions.Builder().build();
+        SubscriptionOptions copy = new SubscriptionOptions.Builder().build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
 
-    @Test
-    public void testHashcode(){
-        assertEquals(buildSubscriptionOptions().hashCode(), buildSubscriptionOptions().hashCode());
-    }
+        opts = new SubscriptionOptions.Builder().durableName("hello").build();
+        copy = new SubscriptionOptions.Builder().durableName("hello").build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
 
+        opts = new SubscriptionOptions.Builder().subscriptionTimeout(Duration.ofMillis(500)).build();
+        copy = new SubscriptionOptions.Builder().subscriptionTimeout(Duration.ofMillis(500)).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+
+        opts = new SubscriptionOptions.Builder().ackWait(Duration.ofMillis(500)).build();
+        copy = new SubscriptionOptions.Builder().ackWait(Duration.ofMillis(500)).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().durableName("foo").build();
+        copy = new SubscriptionOptions.Builder().durableName("foo").build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().manualAcks().build();
+        copy = new SubscriptionOptions.Builder().manualAcks().build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().maxInFlight(10000).build();
+        copy = new SubscriptionOptions.Builder().maxInFlight(10000).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().startAtSequence(12345).build();
+        copy = new SubscriptionOptions.Builder().startAtSequence(12345).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().startAtTime(Instant.now()).build();
+        copy = new SubscriptionOptions.Builder().startAtTime(Instant.now()).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().startAtTimeDelta(Duration.ofMinutes(1)).build();
+        copy = new SubscriptionOptions.Builder().startAtTimeDelta(Duration.ofMinutes(1)).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+    }
 }

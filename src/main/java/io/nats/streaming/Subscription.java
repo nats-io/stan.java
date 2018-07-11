@@ -26,6 +26,7 @@ import java.io.IOException;
  * will be delivered individually to both {@code Subscription} objects.
  */
 public interface Subscription extends AutoCloseable {
+
     /**
      * Retrieves the subject of interest from the {@code Subscription} object.
      *

@@ -113,14 +113,7 @@ public class Publisher {
             }
 
         } catch (IOException e) {
-            if (e.getMessage().equals(io.nats.client.Nats.ERR_NO_SERVERS)) {
-                String err = String.format(
-                        "Can't connect: %s.\nMake sure a NATS Streaming Server is running at: %s",
-                        e.getMessage(), urls);
-                throw new IOException(err);
-            } else {
-                throw (e);
-            }
+            throw (e);
         }
     }
 

@@ -13,8 +13,6 @@
 
 package io.nats.streaming;
 
-import static io.nats.streaming.UnitTestUtilities.runServer;
-import static io.nats.streaming.UnitTestUtilities.testClusterName;
 import static org.junit.Assert.fail;
 
 import io.nats.client.NUID;
@@ -23,41 +21,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-public class StanBenchTest {
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @Rule
-    public TestCasePrinterRule pr = new TestCasePrinterRule(System.out);
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {}
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {}
-
-    @Before
-    public void setUp() throws Exception {}
-
-    @After
-    public void tearDown() throws Exception {}
-
+public class StanBenchExampleTests {
+    final String clusterId = "my_test_cluster";
+    
     @Test
     public void testStanBenchStringArray() {
-        try (NatsStreamingServer srv = runServer(testClusterName)) {
-            final String urls = "nats://localhost:4222";
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterId, false)) {
+            final String urls = srv.getURI();
             final String clientId = NUID.nextGlobal();
-            final String clusterId = "my_test_cluster";
-            final int count = 1000;
+            final int count = 100;
             final int numPubs = 1;
             final int numSubs = 1;
             final int msgSize = 256;
@@ -103,14 +77,14 @@ public class StanBenchTest {
 
     @Test
     public void testStanBenchProperties() {
-        try (NatsStreamingServer srv = runServer(testClusterName)) {
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterId, false)) {
             Properties props = new Properties();
             String client = NUID.nextGlobal();
-            props.setProperty("bench.stan.servers", "nats://localhost:4222");
+            props.setProperty("bench.stan.servers", srv.getURI());
             props.setProperty("bench.stan.cluster.id", "my_test_cluster");
             props.setProperty("bench.streaming.client.id", client);
             props.setProperty("bench.stan.secure", "false");
-            props.setProperty("bench.stan.msg.count", "1000");
+            props.setProperty("bench.stan.msg.count", "100");
             props.setProperty("bench.stan.msg.size", "0");
             props.setProperty("bench.stan.secure", "false");
             props.setProperty("bench.stan.pubs", "1");
@@ -128,24 +102,4 @@ public class StanBenchTest {
             }
         }
     }
-
-    // @Test
-    // public void testRun() {
-    // fail("Not yet implemented"); // TODO
-    // }
-    //
-    // @Test
-    // public void testInstallShutdownHook() {
-    // fail("Not yet implemented"); // TODO
-    // }
-    //
-    // @Test
-    // public void testUsage() {
-    // fail("Not yet implemented"); // TODO
-    // }
-    //
-    // @Test
-    // public void testMain() {
-    // fail("Not yet implemented"); // TODO
-    // }
 }
