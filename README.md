@@ -10,9 +10,6 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
 [![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg?branch=2.0-beta)](http://javadoc.io/doc/io.nats/java-nats-streaming?branch=2.0-beta)
 
-[![Dependency Status](https://www.versioneye.com/user/projects/57c07fd1968d6400336022f2/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/57c07fd1968d6400336022f2)
-[![Reference Status](https://www.versioneye.com/java/io.nats:java-nats-streaming/reference_badge.svg?style=flat-square)](https://www.versioneye.com/java/io.nats:java-nats-streaming/references)
-
 ## A Note on Versions
 
 This is version 2.0-beta of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
