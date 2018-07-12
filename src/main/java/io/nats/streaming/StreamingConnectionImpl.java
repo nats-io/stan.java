@@ -133,6 +133,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             this.dispatcher.subscribe(this.hbSubject);
             this.dispatcher.subscribe(this.ackSubject);
 
+            this.dispatcher.setPendingLimits(-1, -1);
+
             // Send Request to discover the cluster
             String discoverSubject = String.format("%s.%s", opts.getDiscoverPrefix(), clusterId);
             ConnectRequest req = ConnectRequest.newBuilder().setClientID(clientId)
