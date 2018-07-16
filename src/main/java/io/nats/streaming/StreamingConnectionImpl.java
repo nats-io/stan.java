@@ -162,7 +162,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             closeRequests = cr.getCloseRequests();
 
             // Setup the ACK subscription
-            // TODO: do we need this? ackSubscription.setPendingLimits(1024 ^ 2, 32 * 1024 ^ 2);
             pubAckMap = new HashMap<>();
 
             // Create Subscription map
