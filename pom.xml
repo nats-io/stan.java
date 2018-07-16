@@ -80,7 +80,7 @@
         <dependency>
             <groupId>io.nats</groupId>
             <artifactId>jnats</artifactId>
-            <version>${java-nats-version}</version>
+            <version>[${java-nats-version}, 1.9.9)</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
