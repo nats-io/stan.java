@@ -8,7 +8,7 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 [![Build Status](https://travis-ci.org/nats-io/java-nats-streaming.svg?branch=version2)](http://travis-ci.org/nats-io/java-nats-streaming?branch=version2)
 [![Coverage Status](https://coveralls.io/repos/github/nats-io/java-nats-streaming/badge.svg?branch=version2)](https://coveralls.io/github/nats-io/java-nats-streaming?branch=version2)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
-[![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg?branch=2.0-beta)](http://javadoc.io/doc/io.nats/java-nats-streaming?branch=2.0-beta)
+[![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
 
 ## A Note on Versions
 
