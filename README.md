@@ -12,7 +12,9 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 
 ## A Note on Versions
 
-This is version 2.0-beta of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+This is version 2.0.0 of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+
+The new version minimizes threads. Only one thread is used for all callbacks, by relying on a dispatcher in the underlying NATS connection. If you want to deliver in multiple threads, you can use multiple StreamingConnections on the same underlying NATS connection. This reduces total thread usage while allowing callbacks to work independently. See [Sharing A NATS Connection](#sharing-a-nats-connection).
 
 One big change is the move to gradle, and away from maven, as with the NATs library. Please see the instructions below for [Building From Source](#building-from-source). The maven artifacts are still available in the same place, so should be usable without changing your application build files.
 
@@ -320,6 +322,28 @@ sc.subscribe("foo", new MessageHandler() {
     }
 }, new SubscriptionOptions.Builder().manualAcks().maxInFlight(25).build());
 ```
+
+### Sharing A NATS Connection
+
+Under the covers, the StreamConnection has a NATS connection for all message transport. The connection creates a single Dispatcher for message callbacks. If you want to run callbacks in different threads, simply share an underlying NATS connection. The streaming connection doesn't create any other threads, modulo a timer, so this sharing has minimal thread overhead.
+
+```java
+Connection nc = Nats.connect(options));
+Options streamingOptions = new Options.Builder().natsConn(nc).build();
+StreamingConnection one = NatsStreaming.connect(clusterName, clientOne, streamingOptions);
+StreamingConnection two = NatsStreaming.connect(clusterName, clientTwo, streamingOptions);
+```
+
+You can reuse a connection from an existing streaming connection, but beware that closing the connection that created a NATS connection will close the NATS connection. For example, if you do:
+
+```java
+Options streamingOptions = new Options.Builder().natsUrl(srv.getURI()).build();
+StreamingConnection one = NatsStreaming.connect(clusterName, clientOne, streamingOptions));
+Options streamingOptionsTwo = new Options.Builder().natsConn(one.getNatsConnection()).build();
+StreamingConnection two = NatsStreaming.connect(clusterName, clientTwo, streamingOptionsTwo);
+```
+
+you have to close `two` before you close `one` to avoid an exception.
 
 ## Building From Source
 
