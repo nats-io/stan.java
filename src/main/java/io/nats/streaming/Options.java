@@ -23,12 +23,14 @@ public class Options {
     private final Duration ackTimeout;
     private final String discoverPrefix;
     private final int maxPubAcksInFlight;
+    private final Duration pubTimeout;          // can be null, which means wait forever
 
     private Options(Builder builder) {
         this.natsUrl = builder.natsUrl;
         this.natsConn = builder.natsConn;
         this.connectTimeout = builder.connectTimeout;
         this.ackTimeout = builder.ackTimeout;
+        this.pubTimeout = builder.pubTimeout;
         this.discoverPrefix = builder.discoverPrefix;
         this.maxPubAcksInFlight = builder.maxPubAcksInFlight;
     }
@@ -45,6 +47,11 @@ public class Options {
         return connectTimeout;
     }
 
+    Duration getPubTimeout() {
+        return pubTimeout;
+    }
+
+    // can be null, which means wait forever
     Duration getAckTimeout() {
         return ackTimeout;
     }
@@ -64,6 +71,7 @@ public class Options {
         private transient io.nats.client.Connection natsConn; // A Connection is not Serializable
         private Duration connectTimeout = Duration.ofSeconds(NatsStreaming.DEFAULT_CONNECT_WAIT);
         private Duration ackTimeout = Duration.ofMillis(SubscriptionImpl.DEFAULT_ACK_WAIT);
+        private Duration pubTimeout = SubscriptionImpl.DEFAULT_PUB_WAIT > 0 ? Duration.ofMillis(SubscriptionImpl.DEFAULT_PUB_WAIT) : null;
         private String discoverPrefix = NatsStreaming.DEFAULT_DISCOVER_PREFIX;
         private int maxPubAcksInFlight = NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT;
 
@@ -79,8 +87,16 @@ public class Options {
             this.natsConn = template.natsConn;
             this.connectTimeout = template.connectTimeout;
             this.ackTimeout = template.ackTimeout;
+            this.pubTimeout = template.pubTimeout;
             this.discoverPrefix = template.discoverPrefix;
             this.maxPubAcksInFlight = template.maxPubAcksInFlight;
+        }
+
+        // set specific publish timeout (time to block waiting for inflight slot)
+        // set to null to wait forever (default)
+        public Builder pubWait(Duration pubTimeout) {
+            this.pubTimeout = pubTimeout;
+            return this;
         }
 
         public Builder pubAckWait(Duration ackTimeout) {

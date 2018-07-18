@@ -30,8 +30,9 @@ public interface StreamingConnection extends AutoCloseable {
      * @throws IOException           if the publish operation is not successful
      * @throws InterruptedException  if the calling thread is interrupted before the call completes
      * @throws IllegalStateException if the connection is closed
+     * @throws TimeoutException      if the publish could not be completed after blocking for opts.getPubTimeout()
      */
-    void publish(String subject, byte[] data) throws IOException, InterruptedException;
+    void publish(String subject, byte[] data) throws IOException, InterruptedException, TimeoutException;
 
     /**
      * Publishes the payload specified by {@code data} to the subject specified by {@code subject}
@@ -46,10 +47,11 @@ public interface StreamingConnection extends AutoCloseable {
      * @throws IOException           if an I/O exception is encountered
      * @throws InterruptedException  if the calling thread is interrupted before the call completes
      * @throws IllegalStateException if the connection is closed
+     * @throws TimeoutException      if the publish could not be completed after blocking for opts.getPubTimeout()
      * @see AckHandler
      */
     String publish(String subject, byte[] data, AckHandler ah)
-            throws IOException, InterruptedException;
+            throws IOException, InterruptedException, TimeoutException;
 
     /**
      * Creates a {@link Subscription} with interest in a given subject, assigns the callback, and

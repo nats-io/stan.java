@@ -222,6 +222,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     }
                 }
 
+                // we won't get the acks back now we've unsubscribed, so clear the acks pending channel
+                // this also unblocks any threads that are trying to publish and are blocked on this channel
+                // they will fail to publish (due to the nats connection having been torn down) and error out
+                pubAckChan.clear();
+
                 if (getHbSubscription() != null) {
                     try {
                         getHbSubscription().unsubscribe();
@@ -290,7 +295,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     // Publish will publish to the cluster and wait for an ACK.
     @Override
-    public void publish(String subject, byte[] data) throws IOException, InterruptedException {
+    public void publish(String subject, byte[] data) throws IOException, InterruptedException, TimeoutException {
         final BlockingQueue<String> ch = createErrorChannel();
         publish(subject, data, null, ch);
         String err;
@@ -310,25 +315,28 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
      */
     @Override
     public String publish(String subject, byte[] data, AckHandler ah) throws IOException,
-            InterruptedException {
+            InterruptedException, TimeoutException {
         return publish(subject, data, ah, null);
     }
 
     private String publish(String subject, byte[] data, AckHandler ah, BlockingQueue<String> ch)
-            throws IOException, InterruptedException {
+            throws IOException, InterruptedException, TimeoutException {
         String subj;
         String ackSubject;
         Duration ackTimeout;
+        Duration pubTimeout;
         BlockingQueue<PubAck> pac;
         final AckClosure a;
         final PubMsg pe;
         String guid;
         byte[] bytes;
+        io.nats.client.Connection nc;
 
         a = createAckClosure(ah, ch);
         this.lock();
         try {
-            if (getNatsConnection() == null) {
+            nc = getNatsConnection();
+            if (nc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_CONNECTION_CLOSED);
             }
 
@@ -347,6 +355,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             // snapshot
             ackSubject = this.ackSubject;
             ackTimeout = opts.getAckTimeout();
+            pubTimeout = opts.getPubTimeout();
             pac = pubAckChan;
         } finally {
             this.unlock();
@@ -354,7 +363,22 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
         // Use the buffered channel to control the number of outstanding acks.
         try {
-            pac.put(PubAck.getDefaultInstance());
+            if (pubTimeout != null) {
+                if (!pac.offer(PubAck.getDefaultInstance(),pubTimeout.toMillis(),TimeUnit.MILLISECONDS)) {
+                    // could not publish, too many in flight, escalate back to caller
+                    this.lock();
+                    try {
+                        // although we didn't make an entry into the pub ack channel, we did make one into the map,
+                        // clean that up before throwing
+                        pubAckMap.remove(guid);
+                    } finally {
+                        this.unlock();
+                    }
+                    throw new TimeoutException(NatsStreaming.ERR_PUB_TIMEOUT);
+                }
+            } else {
+                pac.put(PubAck.getDefaultInstance());
+            }
         } catch (InterruptedException e) {
             // TODO:  Reevaluate this.
             // Eat this because you can't really do anything with it
@@ -362,7 +386,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
         try {
             nc.publish(subj, ackSubject, bytes, true);
-        } catch (IOException e) {
+        } catch (Exception e) {
             removeAck(guid);
             throw (e);
         }

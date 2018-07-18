@@ -1834,6 +1834,9 @@ public class ITConnectionTest {
                                 pubLatch.countDown();
                             } catch (IOException e) {
                                 e.printStackTrace();
+                            } catch (TimeoutException e) {
+                                System.err.println("publish timed out");
+                                Thread.currentThread().interrupt();
                             } catch (InterruptedException e) {
                                 System.err.println("publish interrupted");
                                 Thread.currentThread().interrupt();
