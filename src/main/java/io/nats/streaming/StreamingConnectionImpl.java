@@ -359,18 +359,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         }
 
         nc.publish(subj, ackSubject, bytes);
-        try {
-            nc.flush(ackTimeout);
-        } catch (IllegalStateException e) { // we may have lost the connection
-            removeAck(guid);
-            throw e;
-        } catch (TimeoutException e) {
-            removeAck(guid);
-            if (ah != null) {
-                ah.onAck(guid, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
-            }
-            return guid;
-        }
 
         // Setup the timer for expiration.
         this.lock();
