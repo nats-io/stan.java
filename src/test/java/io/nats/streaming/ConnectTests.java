@@ -224,6 +224,7 @@ public class ConnectTests {
                 for (int i = 0; i < toSend; i++) {
                     sc.publish("foo", "msg".getBytes());
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 MessageHandler cb = msg -> {
                     try {

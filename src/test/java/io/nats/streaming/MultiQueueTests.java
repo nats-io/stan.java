@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -73,6 +74,7 @@ public class MultiQueueTests {
                             byte[] data = String.format("%d", i).getBytes();
                             sc.publish("foo", data);
                         }
+                        sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                         assertTrue("Did not receive all our messages",
                                 latch.await(5, TimeUnit.SECONDS));
@@ -148,6 +150,7 @@ public class MultiQueueTests {
                             sc.publish("foo", data);
                             // sleep(1, TimeUnit.MICROSECONDS);
                         }
+                        sc.getNatsConnection().flush(Duration.ofSeconds(1));
                         s2BlockedLatch.countDown();
 
                         assertTrue("Did not receive all our messages",
@@ -218,6 +221,7 @@ public class MultiQueueTests {
                             byte[] data = String.format("%d", i).getBytes();
                             sc.publish("foo", data);
                         }
+                        sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                         assertTrue("Did not receive all our messages",
                                 latch.await(30, TimeUnit.SECONDS));
@@ -293,6 +297,7 @@ public class MultiQueueTests {
                             byte[] data = String.format("%d", i).getBytes();
                             sc.publish("foo", data);
                         }
+                        sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                         assertTrue("Did not ack expected count of messages",
                                 latch.await(30, TimeUnit.SECONDS));

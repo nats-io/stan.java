@@ -47,6 +47,7 @@ public class RedeliveryTests {
                 for (int i = 0; i < toSend; i++) {
                     sc.publish("foo", hw, null);
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 // Make sure we get an error on bad ackWait
                 boolean exThrown = false;
@@ -162,6 +163,7 @@ public class RedeliveryTests {
                     for (int i = 0; i < toSend; i++) {
                         sc.publish("foo", hw);
                     }
+                    sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                     // If this succeeds, it means that we got all messages first delivered,
                     // and then at least 2 * toSend messages received as redelivered.
@@ -231,6 +233,7 @@ public class RedeliveryTests {
                         fail("Error publishing message: " + e.getMessage());
                     }
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final CountDownLatch latch = new CountDownLatch(1);
                 final AtomicInteger received = new AtomicInteger(0);

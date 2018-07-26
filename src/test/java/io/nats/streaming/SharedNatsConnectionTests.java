@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -125,6 +126,8 @@ public class SharedNatsConnectionTests {
                         one.publish("foo", payload);
                         two.publish("foo", payload);
                     }
+                    one.getNatsConnection().flush(Duration.ofSeconds(1));
+                    one.getNatsConnection().flush(Duration.ofSeconds(1));
 
                     assertTrue(latch.await(10, TimeUnit.SECONDS));
 

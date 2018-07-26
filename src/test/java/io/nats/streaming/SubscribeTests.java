@@ -122,6 +122,8 @@ public class SubscribeTests {
                 for (int i = 0; i < total; i++) {
                     sc.publish("foo", "msg".getBytes());
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
+
                 final CountDownLatch latch = new CountDownLatch(1);
                 MessageHandler cb = msg -> {
                     if (!msg.isRedelivered() && (msg.getSequence() == firstBatch
@@ -154,6 +156,7 @@ public class SubscribeTests {
                 for (int i = 0; i < total; i++) {
                     sc.publish("foo", "msg".getBytes());
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
                 // Create durable queue sub, it should receive from where it left off,
                 // and ignore the start position
                 try (Subscription sub = sc.subscribe("foo", "bar", cb,
@@ -181,6 +184,7 @@ public class SubscribeTests {
                     byte[] data = String.format("%d", i).getBytes();
                     sc.publish("foo", data);
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 // Now subscribe and set start position to last received.
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -229,6 +233,8 @@ public class SubscribeTests {
                     byte[] data = String.format("%d", i).getBytes();
                     sc.publish("foo", data);
                 }
+
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final CountDownLatch latch = new CountDownLatch(1);
                 final AtomicInteger received = new AtomicInteger(0);
@@ -295,6 +301,7 @@ public class SubscribeTests {
                     byte[] data = String.format("%d", i).getBytes();
                     sc.publish("foo", data);
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final CountDownLatch[] latch = new CountDownLatch[1];
                 latch[0] = new CountDownLatch(1);
@@ -395,6 +402,7 @@ public class SubscribeTests {
                     byte[] data = String.format("%d", i).getBytes();
                     sc.publish("foo", data);
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final CountDownLatch latch = new CountDownLatch(1);
                 final AtomicInteger received = new AtomicInteger(0);
@@ -493,6 +501,7 @@ public class SubscribeTests {
                 for (int i = 1; i <= 10; i++) {
                     sc.publish("foo", String.format("%d", i).getBytes());
                 }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
             }
         }
@@ -595,6 +604,7 @@ public class SubscribeTests {
             for (int i = 0; i < toSend; i++) {
                 sc.publish("foo", hw);
             }
+            sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
             final CountDownLatch latch = new CountDownLatch(1);
             final AtomicInteger received = new AtomicInteger(0);
