@@ -22,13 +22,14 @@ import io.nats.client.Connection;
 import io.nats.streaming.protobuf.SubscriptionResponse;
 import io.nats.streaming.protobuf.UnsubscribeRequest;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class SubscriptionImpl implements Subscription {
-
-    static final long DEFAULT_ACK_WAIT = 30 * 1000;
-    static final int DEFAULT_MAX_IN_FLIGHT = 1024;
 
     private final ReadWriteLock rwlock = new ReentrantReadWriteLock();
     StreamingConnectionImpl sc;
@@ -36,7 +37,6 @@ class SubscriptionImpl implements Subscription {
     private String qgroup;
     String inbox;
     String ackInbox;
-    io.nats.client.Subscription inboxSub;
     SubscriptionOptions opts = new SubscriptionOptions.Builder().build();
     MessageHandler cb;
 
@@ -123,21 +123,12 @@ class SubscriptionImpl implements Subscription {
             if (sc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_BAD_SUBSCRIPTION);
             }
+            sc.dispatcher.unsubscribe(this.inbox);
+
             this.sc = null;
-            if (inboxSub != null) {
-                try {
-                    inboxSub.unsubscribe();
-                } catch (Exception e) {
-                    // Silently ignore this, we can't do anything about it
-                }
-                inboxSub = null;
-            }
+
         } finally {
             wUnlock();
-        }
-
-        if (sc == null) {
-            throw new IllegalStateException(NatsStreaming.ERR_BAD_SUBSCRIPTION);
         }
 
         sc.lock();
@@ -170,14 +161,15 @@ class SubscriptionImpl implements Subscription {
         io.nats.client.Message reply;
 
         try {
-            reply = nc.request(reqSubject, bytes, sc.opts.connectTimeout.toMillis());
+            Future<io.nats.client.Message> incoming = nc.request(reqSubject, bytes);
+            reply = incoming.get(sc.opts.connectTimeout.toMillis(), TimeUnit.MILLISECONDS);
             if (reply == null) {
                 if (unsubscribe) {
                     throw new IOException(ERR_UNSUB_REQ_TIMEOUT);
                 }
                 throw new IOException(ERR_CLOSE_REQ_TIMEOUT);
             }
-        } catch (InterruptedException e) {
+        } catch (TimeoutException|ExecutionException|InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException(e);
         }

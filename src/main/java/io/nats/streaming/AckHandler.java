@@ -18,12 +18,13 @@ package io.nats.streaming;
  */
 public interface AckHandler {
     /**
-     * This method is called when a message has been acknowledged by the STAN server, or if an error
-     * has occurred during the publish operations. Processes the message acknowledgement (
-     * {@code NUID} ), along with any error that was encountered
+     * This method is called when a message has been acknowledged by the STAN
+     * server, or if an error has occurred during the publish operations. Processes
+     * the message acknowledgement ( {@code NUID} ), along with any error that was
+     * encountered
      * 
      * @param nuid the message NUID
-     * @param ex any exception that was encountered
+     * @param ex   any exception that was encountered
      */
     void onAck(String nuid, Exception ex);
 }

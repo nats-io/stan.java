@@ -33,26 +33,44 @@ public class Options {
         this.maxPubAcksInFlight = builder.maxPubAcksInFlight;
     }
 
+    /**
+     * @return the nats url to use to connect to gnatsd.
+     */
     String getNatsUrl() {
         return natsUrl;
     }
 
+    /**
+     * @return the underlying nats connection
+     */
     io.nats.client.Connection getNatsConn() {
         return natsConn;
     }
 
+    /**
+     * @return the connect timeout
+     */
     Duration getConnectTimeout() {
         return connectTimeout;
     }
 
+    /**
+     * @return the ack timeout
+     */
     Duration getAckTimeout() {
         return ackTimeout;
     }
 
+    /**
+     * @return the prefix used in discovery for the cluster
+     */
     String getDiscoverPrefix() {
         return discoverPrefix;
     }
 
+    /**
+     * @return the maximum publish acks allowed at one time, subscription acks are set up on the subscription options
+     */
     int getMaxPubAcksInFlight() {
         return maxPubAcksInFlight;
     }
@@ -63,7 +81,7 @@ public class Options {
 		private String natsUrl = NatsStreaming.DEFAULT_NATS_URL;
         private transient io.nats.client.Connection natsConn; // A Connection is not Serializable
         private Duration connectTimeout = Duration.ofSeconds(NatsStreaming.DEFAULT_CONNECT_WAIT);
-        private Duration ackTimeout = Duration.ofMillis(SubscriptionImpl.DEFAULT_ACK_WAIT);
+        private Duration ackTimeout = SubscriptionOptions.DEFAULT_ACK_WAIT;
         private String discoverPrefix = NatsStreaming.DEFAULT_DISCOVER_PREFIX;
         private int maxPubAcksInFlight = NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT;
 
@@ -83,36 +101,70 @@ public class Options {
             this.maxPubAcksInFlight = template.maxPubAcksInFlight;
         }
 
+        /**
+         * Set the ack timeout
+         * @param ackTimeout the timeout
+         * @return the builder for chaining
+         */
         public Builder pubAckWait(Duration ackTimeout) {
             this.ackTimeout = ackTimeout;
             return this;
         }
 
+        /**
+         * Set the connect timeout
+         * @param connectTimeout the timeout
+         * @return the builder for chaining
+         */
         public Builder connectWait(Duration connectTimeout) {
             this.connectTimeout = connectTimeout;
             return this;
         }
 
+        /**
+         * Set the discovery prefix
+         * @param discoverPrefix the prefix, defaults to {@link NatsStreaming#DEFAULT_DISCOVER_PREFIX DEFAULT_DISCOVER_PREFIX}.
+         * @return the builder for chaining
+         */
         public Builder discoverPrefix(String discoverPrefix) {
             this.discoverPrefix = discoverPrefix;
             return this;
         }
 
+        /**
+         * Set the max pub acks the server/client will allow
+         * @param maxPubAcksInFlight the max acks
+         * @return the builder for chaining
+         */
         public Builder maxPubAcksInFlight(int maxPubAcksInFlight) {
             this.maxPubAcksInFlight = maxPubAcksInFlight;
             return this;
         }
 
+        /**
+         * Manually set the gnatsd connection
+         * @param natsConn a valid nats connection (from the latest version of the library)
+         * @return the builder for chaining
+         */
         public Builder natsConn(io.nats.client.Connection natsConn) {
             this.natsConn = natsConn;
             return this;
         }
 
+        /**
+         * Set the url to connect to for gnatsd
+         * @param natsUrl a valid nats url, see the client library for more information
+         * @return the builder for chaining
+         */
         public Builder natsUrl(String natsUrl) {
             this.natsUrl = natsUrl;
             return this;
         }
 
+        /**
+         * Construct the options object.
+         * @return the options object
+         */
         public Options build() {
             return new Options(this);
         }

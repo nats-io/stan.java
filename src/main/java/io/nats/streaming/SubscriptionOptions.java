@@ -25,6 +25,20 @@ import java.util.concurrent.TimeUnit;
  * A SubscriptionOptions object defines the configurable parameters of a STAN Subscription object.
  */
 public class SubscriptionOptions {
+    /**
+     * Default ack wait time for a subscriptions.
+     */
+    public static final Duration DEFAULT_ACK_WAIT = Duration.ofSeconds(30);
+
+    /**
+     * Default max messages in flight for a subscriptions.
+     */
+    public static final int DEFAULT_MAX_IN_FLIGHT = 1024;
+
+    /**
+     * Default time a connection will wait to create a subscription.
+     */
+    public static final Duration DEFAULT_SUBSCRIPTION_TIMEOUT = Duration.ofSeconds(2);
 
     // DurableName, if set will survive client restarts.
     private final String durableName;
@@ -40,6 +54,7 @@ public class SubscriptionOptions {
     private final Instant startTime;
     // Option to do Manual Acks
     private final boolean manualAcks;
+    private final Duration subscriptionTimeout;
 
     // Date startTimeAsDate;
 
@@ -51,6 +66,14 @@ public class SubscriptionOptions {
         this.startSequence = builder.startSequence;
         this.startTime = builder.startTime;
         this.manualAcks = builder.manualAcks;
+        this.subscriptionTimeout = builder.subscriptionTimeout;
+    }
+
+    /**
+     * @return the time to wait when creating a subscription if there is a network problem
+     */
+    public Duration getSubscriptionTimeout() {
+        return this.subscriptionTimeout;
     }
 
     /**
@@ -180,24 +203,14 @@ public class SubscriptionOptions {
         private static final long serialVersionUID = 1476017376308805473L;
 
 		String durableName;
-        int maxInFlight = SubscriptionImpl.DEFAULT_MAX_IN_FLIGHT;
-        Duration ackWait = Duration.ofMillis(SubscriptionImpl.DEFAULT_ACK_WAIT);
+        int maxInFlight = SubscriptionOptions.DEFAULT_MAX_IN_FLIGHT;
+        Duration ackWait = SubscriptionOptions.DEFAULT_ACK_WAIT;
         StartPosition startAt = StartPosition.NewOnly;
         long startSequence;
         Instant startTime;
         boolean manualAcks;
         Date startTimeAsDate;
-
-        /**
-         * Sets the durable subscriber name for the subscription.
-         *
-         * @param durableName the name of the durable subscriber
-         * @return this
-         * @deprecated Use {@link #durableName(String)} instead
-         */
-        public Builder setDurableName(String durableName) {
-            return durableName(durableName);
-        }
+        Duration subscriptionTimeout = SubscriptionOptions.DEFAULT_SUBSCRIPTION_TIMEOUT;
 
         /**
          * Sets the durable subscriber name for the subscription.
@@ -213,17 +226,6 @@ public class SubscriptionOptions {
         /**
          * Sets the maximum number of in-flight (unacknowledged) messages for the subscription.
          *
-         * @param max maximum number of in-flight messages
-         * @return this
-         * @deprecated Use {@link #maxInFlight(int)} instead
-         */
-        public Builder setMaxInFlight(int max) {
-            return maxInFlight(max);
-        }
-
-        /**
-         * Sets the maximum number of in-flight (unacknowledged) messages for the subscription.
-         *
          * @param max the maximum number of in-flight messages
          * @return this
          */
@@ -233,26 +235,14 @@ public class SubscriptionOptions {
         }
 
         /**
-         * Sets the amount of time the subscription will wait for ACKs from the cluster.
+         * Sets the amount of time the subscription will wait during creation on a network failure.
          *
-         * @param ackWait the amount of time the subscription will wait for an ACK from the cluster
+         * @param timeout the amount of time the subscription will wait to be created
          * @return this
-         * @deprecated use {@link #ackWait(Duration)} instead
          */
-        public Builder setAckWait(Duration ackWait) {
-            return ackWait(ackWait);
-        }
-
-        /**
-         * Sets the amount of time the subscription will wait for ACKs from the cluster.
-         *
-         * @param ackWait the amount of time the subscription will wait for an ACK from the cluster
-         * @param unit    the time unit
-         * @return this
-         * @deprecated use {@link #ackWait(long, TimeUnit)} instead
-         */
-        public Builder setAckWait(long ackWait, TimeUnit unit) {
-            return ackWait(ackWait, unit);
+        public Builder subscriptionTimeout(Duration timeout) {
+            this.subscriptionTimeout = timeout;
+            return this;
         }
 
         /**
@@ -276,18 +266,6 @@ public class SubscriptionOptions {
         public Builder ackWait(long ackWait, TimeUnit unit) {
             this.ackWait = Duration.ofMillis(unit.toMillis(ackWait));
             return this;
-        }
-
-        /**
-         * Sets whether or not messages must be acknowledge individually by calling
-         * {@link Message#ack()}.
-         *
-         * @param manualAcks whether or not messages must be manually acknowledged
-         * @return this
-         * @deprecated use {@link #manualAcks()} instead
-         */
-        public Builder setManualAcks(boolean manualAcks) {
-            return manualAcks();
         }
 
         /**

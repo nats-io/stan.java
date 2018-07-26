@@ -16,7 +16,7 @@ package io.nats.streaming;
 import java.io.IOException;
 
 public final class NatsStreaming {
-    static final String DEFAULT_NATS_URL = io.nats.client.Nats.DEFAULT_URL;
+    static final String DEFAULT_NATS_URL = io.nats.client.Options.DEFAULT_URL;
     static final int DEFAULT_CONNECT_WAIT = 2; // Seconds
     static final String DEFAULT_DISCOVER_PREFIX = "_STAN.discover";
     static final String DEFAULT_ACK_PREFIX = "_STAN.acks";
@@ -87,7 +87,8 @@ public final class NatsStreaming {
             throws IOException, InterruptedException {
         try {
             StreamingConnectionImpl conn = new StreamingConnectionImpl(clusterId, clientId, opts);
-            return conn.connect();
+            conn.connect();
+            return conn;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
