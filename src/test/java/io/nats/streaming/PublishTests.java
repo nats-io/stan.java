@@ -26,6 +26,8 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Test;
 
+import io.nats.client.Connection.Status;
+
 public class PublishTests {
     private static final String clusterName = "test-cluster";
     private static final String clientName = "me";
@@ -67,7 +69,7 @@ public class PublishTests {
         final String[] guid = new String[1];
         // Run a STAN server
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
-            Options opts = new Options.Builder().pubAckWait(Duration.ofMillis(50)).natsUrl(srv.getURI()).build();
+            Options opts = new Options.Builder().pubAckWait(Duration.ofMillis(500)).natsUrl(srv.getURI()).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, opts)) {
                 assertNotNull(sc);
                 AckHandler acb = (lguid, ex) -> {
@@ -78,13 +80,23 @@ public class PublishTests {
                 // Kill the NATS Streaming server so we timeout
                 srv.shutdown();
 
+                int tries = 20;
+                while (tries > 0 && sc.getNatsConnection().getStatus() == Status.CONNECTED) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception exp)
+                    {
+                        //ignore
+                    }
+                    tries--;
+                }
+
                 guid[0] = sc.publish("foo", "Hello World!".getBytes(), acb);
                 assertNotNull(guid[0]);
                 assertFalse("Expected non-empty guid to be returned.", guid[0].isEmpty());
                 assertTrue("Did not receive our ack callback with a timeout err",
                         latch.await(2, TimeUnit.SECONDS));
-            }
+            } // will throw on close
         }
-
     }
 }
