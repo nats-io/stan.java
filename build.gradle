@@ -56,7 +56,7 @@ dependencies {
 
     testImplementation 'junit:junit:4.12'
 
-    implementation 'io.nats:jnats:2.+'
+    implementation 'io.nats:jnats:[2.0.0,)'
 }
 
 sourceSets {

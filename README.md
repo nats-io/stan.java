@@ -12,7 +12,7 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 
 ## A Note on Versions
 
-This is version 2.0.0 of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+This is version 2.0 of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
 
 The new version minimizes threads. Only one thread is used for all callbacks, by relying on a dispatcher in the underlying NATS connection. If you want to deliver in multiple threads, you can use multiple StreamingConnections on the same underlying NATS connection. This reduces total thread usage while allowing callbacks to work independently. See [Sharing A NATS Connection](#sharing-a-nats-connection).
 
@@ -26,9 +26,9 @@ The nats streaming client requires two jar files to run, the java nats library a
 
 ### Downloading the Jar
 
-You can download the latest java nats jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.0-beta/jnats-2.0-beta.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.0-beta/jnats-2.0-beta.jar).
+You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.0.1/jnats-2.0.1.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.0.1/jnats-2.0.1.jar).
 
-You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.0-SNAPSHOT/java-nats-streaming-2.0-SNAPSHOT.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.0-SNAPSHOT/java-nats-streaming-2.0-SNAPSHOT.jar).
+You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.0.1/java-nats-streaming-2.0.1.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.0.1/java-nats-streaming-2.0.1.jar).
 
 ### Using Gradle
 
@@ -36,7 +36,7 @@ The NATs client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:java-nats-streaming:2.0-SNAPSHOT'
+    implementation 'io.nats:java-nats-streaming:2.0.0'
 }
 ```
 
@@ -62,7 +62,7 @@ The NATs client is available on the Maven central repository, and can be importe
 <dependency>
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
