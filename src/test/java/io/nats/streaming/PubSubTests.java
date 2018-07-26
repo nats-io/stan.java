@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -62,6 +63,7 @@ public class PubSubTests {
                     for (int i = 0; i < toSend; i++) {
                         sc.publish("foo", hw);
                     }
+                    sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                     assertTrue("Did not receive our messages", latch.await(1, TimeUnit.SECONDS));
                 }
@@ -92,6 +94,7 @@ public class PubSubTests {
                     for (int i = 0; i < toSend; i++) {
                         sc.publish("foo", hw);
                     }
+                    sc.getNatsConnection().flush(Duration.ofSeconds(1));
                     assertTrue("Did not receive all our messages",
                             latch.await(1, TimeUnit.SECONDS));
                 }
@@ -125,6 +128,7 @@ public class PubSubTests {
                             fail("Received error on publish: " + e.getMessage());
                         }
                     }
+                    sc.getNatsConnection().flush(Duration.ofSeconds(1));
                     assertTrue("Did not receive all our messages",
                             latch.await(5, TimeUnit.SECONDS));
                 }
@@ -145,6 +149,7 @@ public class PubSubTests {
                     sc.publish("foo", hw, null);
                 }
                 sc.publish("foo", hw);
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final CountDownLatch fch = new CountDownLatch(1);
 
