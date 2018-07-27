@@ -12,11 +12,11 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 
 ## A Note on Versions
 
-This is version 2.0 of the Java NATs streaming library. This version is a minor port to version 2.0 of the Java NATs library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+This is version 2.0 of the Java NATS streaming library. This version is a minor port to version 2.0 of the Java NATS library, but contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
 
 The new version minimizes threads. Only one thread is used for all callbacks, by relying on a dispatcher in the underlying NATS connection. If you want to deliver in multiple threads, you can use multiple StreamingConnections on the same underlying NATS connection. This reduces total thread usage while allowing callbacks to work independently. See [Sharing A NATS Connection](#sharing-a-nats-connection).
 
-One big change is the move to gradle, and away from maven, as with the NATs library. Please see the instructions below for [Building From Source](#building-from-source). The maven artifacts are still available in the same place, so should be usable without changing your application build files.
+One big change is the move to gradle, and away from maven, as with the NATS library. Please see the instructions below for [Building From Source](#building-from-source). The maven artifacts are still available in the same place, so should be usable without changing your application build files.
 
 Previous versions are still available in the repo.
 
@@ -32,7 +32,7 @@ You can download the latest java nats streaming jar at [https://search.maven.org
 
 ### Using Gradle
 
-The NATs client is available in the Maven central repository, and can be imported as a standard dependency in your `build.gradle` file:
+The NATS client is available in the Maven central repository, and can be imported as a standard dependency in your `build.gradle` file:
 
 ```groovy
 dependencies {
@@ -56,7 +56,7 @@ repositories {
 
 ### Using Maven
 
-The NATs client is available on the Maven central repository, and can be imported as a normal dependency in your pom.xml file:
+The NATS client is available on the Maven central repository, and can be imported as a normal dependency in your pom.xml file:
 
 ```xml
 <dependency>
