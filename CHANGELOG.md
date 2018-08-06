@@ -1,6 +1,10 @@
 # Change Log
 
-## Version 2.0.0-SNAPSHOT
+## Version 2.0.2
+
+* [#92] Updated version of protobuf library
+
+## Version 2.0.0
 
 * [BREAKING CHANGE] Moved build to gradle
 * [BREAKING CHANGE] Moved to 2.0.0 of the NATs client
