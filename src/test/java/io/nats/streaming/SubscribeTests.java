@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -587,7 +588,6 @@ public class SubscribeTests {
         }
     }
 
-
     @Test
     public void testDurableSubscriber() throws Exception {
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
@@ -701,6 +701,94 @@ public class SubscribeTests {
                     assertEquals("Wrong sequence number", ++idx, msg.getSequence());
                 }
                 sc2.close();
+
+            } catch (IOException | TimeoutException e) {
+                e.printStackTrace();
+                fail("Expected to connect correctly, got err [" + e.getMessage() + "]");
+            } catch (IllegalStateException e) {
+                // NOOP, connection already closed during close
+            } finally {
+                sc.close();
+            }
+        } // runServer()
+    }
+
+    @Test
+    public void testDurableSubscriberCloseVersusUnsub() throws Exception {
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            final StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options);
+
+            int counter = 0;
+            final AtomicInteger received = new AtomicInteger();
+
+            try {
+                /*
+                 * Test Initial Subscription
+                 */
+                final CountDownLatch latch = new CountDownLatch(1);
+
+                sc.publish("foo", String.valueOf(counter).getBytes(StandardCharsets.UTF_8));
+                counter++;
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
+
+                final Subscription sub = sc.subscribe("foo", msg -> {
+                    received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    latch.countDown();
+                }, new SubscriptionOptions.Builder().deliverAllAvailable()
+                        .durableName("durable-foo").build());
+
+                assertTrue("Did not receive first delivery of all messages",
+                        latch.await(5, TimeUnit.SECONDS));
+                assertEquals("should get first message", received.get(), 0);
+
+                sub.close(); // Should not unsub
+                sc.getNatsConnection().flush(Duration.ofSeconds(2));
+                try {Thread.sleep(2000);} catch(Exception e) {}; // Give the server time to clean up
+
+                /*
+                 * Test reopen after close()
+                 */
+                final CountDownLatch latch2 = new CountDownLatch(1);
+
+                sc.publish("foo", String.valueOf(counter).getBytes(StandardCharsets.UTF_8));
+                counter++;
+                sc.getNatsConnection().flush(Duration.ofSeconds(2));
+                
+                final Subscription sub2 = sc.subscribe("foo", msg -> {
+                    received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    latch2.countDown();
+                }, new SubscriptionOptions.Builder().deliverAllAvailable()
+                        .durableName("durable-foo").build());
+
+                assertTrue("Did not receive first delivery of all messages",
+                        latch2.await(5, TimeUnit.SECONDS));
+                assertEquals("should get second message", received.get(), 1);
+
+                sub2.close(true); // Should unsub
+                sc.getNatsConnection().flush(Duration.ofSeconds(2));
+                try {Thread.sleep(2000);} catch(Exception e) {}; // Give the server time to clean up
+
+                /*
+                 * Test reopen after close(true)
+                 */
+                final CountDownLatch latch3 = new CountDownLatch(1);
+
+                sc.publish("foo", String.valueOf(counter).getBytes(StandardCharsets.UTF_8));
+                counter++;
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
+                
+                final Subscription sub3 = sc.subscribe("foo", msg -> {
+                    received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    latch3.countDown();
+                }, new SubscriptionOptions.Builder().deliverAllAvailable()
+                        .durableName("durable-foo").build());
+
+                assertTrue("Did receive first delivery of all messages",
+                        latch3.await(5, TimeUnit.SECONDS));
+                assertEquals("should get first message first", received.get(), 0);
+
+                sub3.close(true); // Should unsub
 
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();

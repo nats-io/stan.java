@@ -109,7 +109,7 @@ class SubscriptionImpl implements Subscription {
             // already closed
             return;
         }
-        close(true);
+        close(false);
     }
 
     @Override

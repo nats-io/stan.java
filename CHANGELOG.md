@@ -1,6 +1,11 @@
 # Change Log
 
-## Version 2.0.0-SNAPSHOT
+## Version 2.0.2
+
+* [#92] Updated version of protobuf library
+* [#94 CHANGE] Subscriber close() was documented to be close(false), but was calling close(true). The code now reflects the documentation. Old code expecting close() to remove a durable subscriber will need to be updated.
+
+## Version 2.0.0
 
 * [BREAKING CHANGE] Moved build to gradle
 * [BREAKING CHANGE] Moved to 2.0.0 of the NATs client
