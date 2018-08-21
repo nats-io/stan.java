@@ -2,6 +2,7 @@
 
 ## Version 2.0.3
 
+* [#93] Made it easier to set the error and connection listener on a stream connection
 
 ## Version 2.0.2
 

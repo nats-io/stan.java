@@ -17,7 +17,7 @@ import java.io.IOException;
 
 public final class NatsStreaming {
     static final String DEFAULT_NATS_URL = io.nats.client.Options.DEFAULT_URL;
-    static final int DEFAULT_CONNECT_WAIT = 2; // Seconds
+    static final int DEFAULT_CONNECT_WAIT = 5; // Seconds
     static final String DEFAULT_DISCOVER_PREFIX = "_STAN.discover";
     static final String DEFAULT_ACK_PREFIX = "_STAN.acks";
     static final int DEFAULT_MAX_PUB_ACKS_IN_FLIGHT = 16384;

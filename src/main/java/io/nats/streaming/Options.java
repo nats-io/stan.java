@@ -16,6 +16,9 @@ package io.nats.streaming;
 import java.io.Serializable;
 import java.time.Duration;
 
+import io.nats.client.ConnectionListener;
+import io.nats.client.ErrorListener;
+
 public class Options {
     private final String natsUrl;
     private final io.nats.client.Connection natsConn;
@@ -23,6 +26,8 @@ public class Options {
     private final Duration ackTimeout;
     private final String discoverPrefix;
     private final int maxPubAcksInFlight;
+    private ErrorListener errorListener;
+    private ConnectionListener connectionListener;
 
     private Options(Builder builder) {
         this.natsUrl = builder.natsUrl;
@@ -31,6 +36,8 @@ public class Options {
         this.ackTimeout = builder.ackTimeout;
         this.discoverPrefix = builder.discoverPrefix;
         this.maxPubAcksInFlight = builder.maxPubAcksInFlight;
+        this.connectionListener = builder.connectionListener;
+        this.errorListener = builder.errorListener;
     }
 
     /**
@@ -38,6 +45,22 @@ public class Options {
      */
     String getNatsUrl() {
         return natsUrl;
+    }
+
+    /**
+     * @return the error listener to associated with the underlying nats connection
+     *         if one isn't already set on it.
+     */
+    ErrorListener getErrorListener() {
+        return this.errorListener;
+    }
+
+    /**
+     * @return the connection listener to associated with the underlying nats connection
+     *         if one isn't already set on it.
+     */
+    ConnectionListener getConnectionListener() {
+        return this.connectionListener;
     }
 
     /**
@@ -69,26 +92,31 @@ public class Options {
     }
 
     /**
-     * @return the maximum publish acks allowed at one time, subscription acks are set up on the subscription options
+     * @return the maximum publish acks allowed at one time, subscription acks are
+     *         set up on the subscription options
      */
     int getMaxPubAcksInFlight() {
         return maxPubAcksInFlight;
     }
 
     public static final class Builder implements Serializable {
-		private static final long serialVersionUID = 4774214916207501660L;
-		
-		private String natsUrl = NatsStreaming.DEFAULT_NATS_URL;
+        private static final long serialVersionUID = 4774214916207501660L;
+
+        private String natsUrl = NatsStreaming.DEFAULT_NATS_URL;
         private transient io.nats.client.Connection natsConn; // A Connection is not Serializable
         private Duration connectTimeout = Duration.ofSeconds(NatsStreaming.DEFAULT_CONNECT_WAIT);
         private Duration ackTimeout = SubscriptionOptions.DEFAULT_ACK_WAIT;
         private String discoverPrefix = NatsStreaming.DEFAULT_DISCOVER_PREFIX;
         private int maxPubAcksInFlight = NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT;
+        private ErrorListener errorListener;
+        private ConnectionListener connectionListener;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         /**
-         * Constructs a {@link Builder} instance based on the supplied {@link Options} instance.
+         * Constructs a {@link Builder} instance based on the supplied {@link Options}
+         * instance.
          *
          * @param template the {@link Options} object to use as a template
          */
@@ -102,7 +130,34 @@ public class Options {
         }
 
         /**
+         * Provide an error listener to use when creating the nats connection.
+         * 
+         * If a manual connection is used, this setting is ignored.
+         * 
+         * @param listener the ErrorListener
+         * @return the builder for chaining
+         */
+        public Builder errorListener(ErrorListener listener) {
+            this.errorListener = listener;
+            return this;
+        }
+
+        /**
+         * Provide an connection listener to use when creating the nats connection.
+         * 
+         * If a manual connection is used, this setting is ignored.
+         * 
+         * @param listener the ConnectionListener
+         * @return the builder for chaining
+         */
+        public Builder connectionListener(ConnectionListener listener) {
+            this.connectionListener = listener;
+            return this;
+        }
+
+        /**
          * Set the ack timeout
+         * 
          * @param ackTimeout the timeout
          * @return the builder for chaining
          */
@@ -113,6 +168,7 @@ public class Options {
 
         /**
          * Set the connect timeout
+         * 
          * @param connectTimeout the timeout
          * @return the builder for chaining
          */
@@ -123,7 +179,10 @@ public class Options {
 
         /**
          * Set the discovery prefix
-         * @param discoverPrefix the prefix, defaults to {@link NatsStreaming#DEFAULT_DISCOVER_PREFIX DEFAULT_DISCOVER_PREFIX}.
+         * 
+         * @param discoverPrefix the prefix, defaults to
+         *                       {@link NatsStreaming#DEFAULT_DISCOVER_PREFIX
+         *                       DEFAULT_DISCOVER_PREFIX}.
          * @return the builder for chaining
          */
         public Builder discoverPrefix(String discoverPrefix) {
@@ -133,6 +192,7 @@ public class Options {
 
         /**
          * Set the max pub acks the server/client will allow
+         * 
          * @param maxPubAcksInFlight the max acks
          * @return the builder for chaining
          */
@@ -143,7 +203,9 @@ public class Options {
 
         /**
          * Manually set the gnatsd connection
-         * @param natsConn a valid nats connection (from the latest version of the library)
+         * 
+         * @param natsConn a valid nats connection (from the latest version of the
+         *                 library)
          * @return the builder for chaining
          */
         public Builder natsConn(io.nats.client.Connection natsConn) {
@@ -153,6 +215,7 @@ public class Options {
 
         /**
          * Set the url to connect to for gnatsd
+         * 
          * @param natsUrl a valid nats url, see the client library for more information
          * @return the builder for chaining
          */
@@ -163,6 +226,7 @@ public class Options {
 
         /**
          * Construct the options object.
+         * 
          * @return the options object
          */
         public Options build() {

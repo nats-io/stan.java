@@ -733,7 +733,9 @@ public class SubscribeTests {
                 sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final Subscription sub = sc.subscribe("foo", msg -> {
-                    received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    if (latch.getCount() > 0) {
+                        received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    }
                     latch.countDown();
                 }, new SubscriptionOptions.Builder().deliverAllAvailable()
                         .durableName("durable-foo").build());
@@ -756,7 +758,9 @@ public class SubscribeTests {
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
                 
                 final Subscription sub2 = sc.subscribe("foo", msg -> {
-                    received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    if (latch2.getCount() > 0) {
+                        received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    }
                     latch2.countDown();
                 }, new SubscriptionOptions.Builder().deliverAllAvailable()
                         .durableName("durable-foo").build());
@@ -779,7 +783,9 @@ public class SubscribeTests {
                 sc.getNatsConnection().flush(Duration.ofSeconds(1));
                 
                 final Subscription sub3 = sc.subscribe("foo", msg -> {
-                    received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    if (latch3.getCount() > 0) {
+                        received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
+                    }
                     latch3.countDown();
                 }, new SubscriptionOptions.Builder().deliverAllAvailable()
                         .durableName("durable-foo").build());

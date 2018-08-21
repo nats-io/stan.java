@@ -189,6 +189,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             if (opts.getNatsUrl() != null) {
                 io.nats.client.Options natsOpts = new io.nats.client.Options.Builder().
                                                     connectionName(clientId).
+                                                    errorListener(opts.getErrorListener()).
+                                                    connectionListener(opts.getConnectionListener()).
                                                     server(opts.getNatsUrl()).
                                                     build();
                 nc = Nats.connect(natsOpts);
@@ -232,6 +234,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 if (this.dispatcher != null && this.dispatcher.isActive()) {
                     this.dispatcher.unsubscribe(this.ackSubject);
                     this.dispatcher.unsubscribe(this.hbSubject);
+                    nc.closeDispatcher(this.dispatcher);
                 }
 
                 CloseRequest req = CloseRequest.newBuilder().setClientID(clientId).build();
