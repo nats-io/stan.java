@@ -20,6 +20,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.nats.client.Connection;
+import io.nats.client.ErrorListener;
 import io.nats.client.Message;
 import io.nats.client.NUID;
 import io.nats.client.Nats;
@@ -641,7 +642,18 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
         // Perform the callback
         if (cb != null && subsc != null) {
-            cb.onMessage(stanMsg);
+            try {
+                cb.onMessage(stanMsg);
+            } catch (Exception e) {
+                ErrorListener handler = nc.getOptions().getErrorListener();
+                if (handler != null) {
+                    try {
+                        handler.exceptionOccurred(this.nc, e);
+                    } catch (Exception ex) {
+                        // Now we just have to eat it
+                    }
+                }
+            }
         }
 
         // Process auto-ack
