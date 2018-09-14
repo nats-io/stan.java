@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 2.0.3
+
+* [#93] Made it easier to set the error and connection listener on a stream connection
+* [#98] Added try-catch around subscription message callback
+
 ## Version 2.0.2
 
 * [#92] Updated version of protobuf library

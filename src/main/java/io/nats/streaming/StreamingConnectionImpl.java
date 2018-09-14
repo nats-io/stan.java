@@ -20,6 +20,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.nats.client.Connection;
+import io.nats.client.ErrorListener;
 import io.nats.client.Message;
 import io.nats.client.NUID;
 import io.nats.client.Nats;
@@ -189,6 +190,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             if (opts.getNatsUrl() != null) {
                 io.nats.client.Options natsOpts = new io.nats.client.Options.Builder().
                                                     connectionName(clientId).
+                                                    errorListener(opts.getErrorListener()).
+                                                    connectionListener(opts.getConnectionListener()).
                                                     server(opts.getNatsUrl()).
                                                     build();
                 nc = Nats.connect(natsOpts);
@@ -232,6 +235,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 if (this.dispatcher != null && this.dispatcher.isActive()) {
                     this.dispatcher.unsubscribe(this.ackSubject);
                     this.dispatcher.unsubscribe(this.hbSubject);
+                    nc.closeDispatcher(this.dispatcher);
                 }
 
                 CloseRequest req = CloseRequest.newBuilder().setClientID(clientId).build();
@@ -638,7 +642,18 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
         // Perform the callback
         if (cb != null && subsc != null) {
-            cb.onMessage(stanMsg);
+            try {
+                cb.onMessage(stanMsg);
+            } catch (Exception e) {
+                ErrorListener handler = nc.getOptions().getErrorListener();
+                if (handler != null) {
+                    try {
+                        handler.exceptionOccurred(this.nc, e);
+                    } catch (Exception ex) {
+                        // Now we just have to eat it
+                    }
+                }
+            }
         }
 
         // Process auto-ack
