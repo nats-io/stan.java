@@ -160,17 +160,23 @@ public class PubSubTests {
                 // Test that we can't Ack if not in manual mode.
                 try (Subscription sub = sc.subscribe("foo", msg -> {
                     boolean exThrown = false;
+
                     try {
                         msg.ack();
                     } catch (Exception e) {
-                        assertEquals(StreamingConnectionImpl.ERR_MANUAL_ACK, e.getMessage());
+
+                        // first time ack should definitely be err for manual
+                        // after that we are in a quasi closed state and may get invalid sub
+                        if (fch.getCount() > 0) {
+                            assertEquals(StreamingConnectionImpl.ERR_MANUAL_ACK, e.getMessage());
+                        }
                         exThrown = true;
                     }
                     assertTrue("Expected manual ack exception", exThrown);
                     fch.countDown();
                 }, new SubscriptionOptions.Builder().deliverAllAvailable().build())) {
 
-                    assertTrue("Did not receive our first message", fch.await(5, TimeUnit.SECONDS));
+                    assertTrue("Did not receive our first message", fch.await(15, TimeUnit.SECONDS));
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -185,7 +191,6 @@ public class PubSubTests {
                 final List<Message> msgs = new CopyOnWriteArrayList<>();
 
                 assertTrue(sc.getNatsConnection().getStatus() == Status.CONNECTED);
-                assertTrue(((StreamingConnectionImpl)sc).messageDispatcher.isActive());
 
                 // Test we only receive MaxInflight if we do not ack
                 try (Subscription sub = sc.subscribe("foo", msg -> {

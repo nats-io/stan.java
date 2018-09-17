@@ -798,7 +798,7 @@ public class SubscribeTests {
 
                 assertTrue("Did not receive first delivery of all messages",
                         latch.await(5, TimeUnit.SECONDS));
-                assertEquals("should get first message", received.get(), 0);
+                assertEquals("should get first message", 0, received.get());
 
                 sub.close(); // Should not unsub
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
@@ -823,7 +823,7 @@ public class SubscribeTests {
 
                 assertTrue("Did not receive first delivery of all messages",
                         latch2.await(5, TimeUnit.SECONDS));
-                assertEquals("should get second message", received.get(), 1);
+                assertEquals("should get second message", 1, received.get());
 
                 sub2.close(true); // Should unsub
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));

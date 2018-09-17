@@ -402,10 +402,14 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         return guid;
     }
 
-    Dispatcher getCustomDispatcher(String name) {
+    Dispatcher getDispatcherByName(String name) {
         Dispatcher d = null;
         this.lock();
         try {
+            if (name == null || name.isEmpty()) {
+                return this.messageDispatcher;
+            }
+
             d = customDispatchers.get(name);
 
             if (d == null) {
@@ -468,12 +472,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         // Hold lock throughout.
         sub.wLock();
         try {
-            String dname = opts.getDispatcherName();
-            Dispatcher d = this.messageDispatcher;
-
-            if (dname != null && !dname.isEmpty()) {
-                d = this.getCustomDispatcher(dname);
-            }
+            Dispatcher d = this.getDispatcherByName(opts.getDispatcherName());
 
             // Listen for actual messages
             d.subscribe(sub.inbox);

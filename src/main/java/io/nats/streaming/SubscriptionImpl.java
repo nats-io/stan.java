@@ -19,6 +19,7 @@ import static io.nats.streaming.NatsStreaming.ERR_UNSUB_REQ_TIMEOUT;
 import static io.nats.streaming.NatsStreaming.PFX;
 
 import io.nats.client.Connection;
+import io.nats.client.Dispatcher;
 import io.nats.streaming.protobuf.SubscriptionResponse;
 import io.nats.streaming.protobuf.UnsubscribeRequest;
 import java.io.IOException;
@@ -123,7 +124,9 @@ class SubscriptionImpl implements Subscription {
             if (sc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_BAD_SUBSCRIPTION);
             }
-            sc.messageDispatcher.unsubscribe(this.inbox);
+
+            Dispatcher d = sc.getDispatcherByName(this.getOptions().getDispatcherName());
+            d.unsubscribe(this.inbox);
 
             this.sc = null;
 

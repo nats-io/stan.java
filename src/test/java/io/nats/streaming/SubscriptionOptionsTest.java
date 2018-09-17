@@ -207,8 +207,9 @@ public class SubscriptionOptionsTest {
         assertEquals(opts, copy);
         assertNotNull(opts.toString());
         
-        opts = new SubscriptionOptions.Builder().startAtTime(Instant.now()).build();
-        copy = new SubscriptionOptions.Builder().startAtTime(Instant.now()).build();
+        Instant now = Instant.now();
+        opts = new SubscriptionOptions.Builder().startAtTime(now).build();
+        copy = new SubscriptionOptions.Builder().startAtTime(now).build();
         assertEquals(opts.hashCode(), copy.hashCode());
         assertEquals(opts, copy);
         assertNotNull(opts.toString());
