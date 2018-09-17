@@ -136,21 +136,21 @@ class SubscriptionImpl implements Subscription {
 
         sc.lock();
         try {
-            if (sc.nc == null) {
+            // Snapshot connection to avoid data race, since the connection may be
+            // closing while we try to send the request
+            nc = sc.getNatsConnection();
+            if (nc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_CONNECTION_CLOSED);
             }
 
             sc.subMap.remove(this.inbox);
-            reqSubject = sc.unsubRequests;
-            if (!unsubscribe) {
-                reqSubject = sc.subCloseRequests;
-                if (reqSubject.isEmpty()) {
-                    throw new IllegalStateException(ERR_NO_SERVER_SUPPORT);
-                }
+            reqSubject = sc.subCloseRequests;
+            if (unsubscribe) {
+                reqSubject = sc.unsubRequests;
             }
-            // Snapshot connection to avoid data race, since the connection may be
-            // closing while we try to send the request
-            nc = sc.getNatsConnection();
+            if (reqSubject.isEmpty()) {
+                throw new IllegalStateException(ERR_NO_SERVER_SUPPORT);
+            }
         } finally {
             sc.unlock();
         }
