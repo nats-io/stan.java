@@ -799,6 +799,7 @@ public class SubscribeTests {
                         latch.await(5, TimeUnit.SECONDS));
                 assertEquals("should get first message", 0, received.get());
 
+                try {Thread.sleep(2000);} catch(Exception e) {}; // get the ack in the queue
                 sub.close(); // Should not unsub
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
                 try {Thread.sleep(2000);} catch(Exception e) {}; // Give the server time to clean up
@@ -824,6 +825,7 @@ public class SubscribeTests {
                         latch2.await(5, TimeUnit.SECONDS));
                 assertEquals("should get second message", 1, received.get());
 
+                try {Thread.sleep(2000);} catch(Exception e) {}; // get the ack in the queue
                 sub2.close(true); // Should unsub
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
                 try {Thread.sleep(2000);} catch(Exception e) {}; // Give the server time to clean up
