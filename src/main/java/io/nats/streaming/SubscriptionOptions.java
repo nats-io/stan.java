@@ -55,6 +55,7 @@ public class SubscriptionOptions {
     // Option to do Manual Acks
     private final boolean manualAcks;
     private final Duration subscriptionTimeout;
+    private final String dispatcher;
 
     // Date startTimeAsDate;
 
@@ -67,6 +68,7 @@ public class SubscriptionOptions {
         this.startTime = builder.startTime;
         this.manualAcks = builder.manualAcks;
         this.subscriptionTimeout = builder.subscriptionTimeout;
+        this.dispatcher = builder.dispatcher;
     }
 
     /**
@@ -155,6 +157,18 @@ public class SubscriptionOptions {
         return manualAcks;
     }
 
+    /**
+     * Returns name of the dispatcher to use for this subscription. Can be null.
+     * If no dispatcher is provided in the options, a single dispatcher/thread is shared
+     * with other similarly configured subscriptions. By sharing dispatchers suscriptions
+     * can reduce the threads used in their application.
+     * 
+     * @return the dispatcher name for this subscription.
+     */
+    public String getDispatcherName() {
+        return dispatcher;
+    }
+
     @java.lang.Override
     public java.lang.String toString() {
         return "SubscriptionOptions{" +
@@ -181,6 +195,7 @@ public class SubscriptionOptions {
         if (durableName != null ? !durableName.equals(that.durableName) : that.durableName != null) return false;
         if (ackWait != null ? !ackWait.equals(that.ackWait) : that.ackWait != null) return false;
         if (startAt != that.startAt) return false;
+        if (dispatcher != that.dispatcher) return false;
         return startTime != null ? startTime.equals(that.startTime) : that.startTime == null;
     }
 
@@ -192,6 +207,7 @@ public class SubscriptionOptions {
         result = 31 * result + (startAt != null ? startAt.hashCode() : 0);
         result = 31 * result + (int) (startSequence ^ (startSequence >>> 32));
         result = 31 * result + (startTime != null ? startTime.hashCode() : 0);
+        result = 31 * result + (dispatcher != null ? dispatcher.hashCode() : 0);
         result = 31 * result + (manualAcks ? 1 : 0);
         return result;
     }
@@ -210,6 +226,7 @@ public class SubscriptionOptions {
         Instant startTime;
         boolean manualAcks;
         Date startTimeAsDate;
+        String dispatcher;
         Duration subscriptionTimeout = SubscriptionOptions.DEFAULT_SUBSCRIPTION_TIMEOUT;
 
         /**
@@ -351,6 +368,21 @@ public class SubscriptionOptions {
          */
         public Builder deliverAllAvailable() {
             this.startAt = StartPosition.First;
+            return this;
+        }
+
+        /**
+         * Specify a dispatcher for this subscription. Dispatchers are essentially a message queue
+         * and thread to handle callbacks. By sharing dispatchers an application can reduce thread resources.
+         * By splitting subscriptions between dispatchers it is possible to have multiple messages handled
+         * at the same time.
+         * 
+         * A unique dispatcher will be created automatically for each name. Reusing the name reuses the dispatcher.
+         * 
+         * @return this
+         */
+        public Builder dispatcher(String dispatcherName) {
+            this.dispatcher = dispatcherName;
             return this;
         }
 

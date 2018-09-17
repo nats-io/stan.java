@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -439,6 +440,61 @@ public class SubscribeTests {
                         assertEquals(seq, dseq);
                         seq++;
                     }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testSubscriptionNamedDispatcher() throws Exception {
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                final int count = 10;
+
+                for (int i = 1; i <= count; i++) {
+                    byte[] data = String.format("%d", i).getBytes();
+                    sc.publish("foo", data);
+                }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
+
+                final CountDownLatch latch = new CountDownLatch(3);
+                final AtomicInteger received = new AtomicInteger(0);
+                final AtomicInteger received2 = new AtomicInteger(0);
+                final AtomicInteger received3 = new AtomicInteger(0);
+                final HashSet<Thread> threads = new HashSet<>();
+
+                // Capture the messages that are delivered.
+                MessageHandler mcb = msg -> {
+                    threads.add(Thread.currentThread());
+                    if (received.incrementAndGet() >= count) {
+                        latch.countDown();
+                    }
+                };
+                MessageHandler mcb2 = msg -> {
+                    threads.add(Thread.currentThread());
+                    if (received2.incrementAndGet() >= count) {
+                        latch.countDown();
+                    }
+                };
+                MessageHandler mcb3 = msg -> {
+                    threads.add(Thread.currentThread());
+                    if (received3.incrementAndGet() >= count) {
+                        latch.countDown();
+                    }
+                };
+
+                // Should receive all messages.
+                try (Subscription sub = sc.subscribe("foo", mcb,
+                        new SubscriptionOptions.Builder().deliverAllAvailable().build());
+                        Subscription sub2 = sc.subscribe("foo", mcb2,
+                           new SubscriptionOptions.Builder().deliverAllAvailable().dispatcher("one").build());
+                        Subscription sub3 = sc.subscribe("foo", mcb3,
+                            new SubscriptionOptions.Builder().deliverAllAvailable().dispatcher("two").build());) {
+
+                    assertTrue("Did not receive our messages", latch.await(5, TimeUnit.SECONDS));
+                    assertEquals("Got wrong number of msgs", count * 3, received.get() + received2.get() + received3.get());
+                    assertEquals("Got wrong number of threads", 3, threads.size());
                 }
             }
         }

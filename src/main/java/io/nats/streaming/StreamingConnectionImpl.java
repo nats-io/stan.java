@@ -20,6 +20,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.nats.client.Connection;
+import io.nats.client.Dispatcher;
 import io.nats.client.ErrorListener;
 import io.nats.client.Message;
 import io.nats.client.NUID;
@@ -72,7 +73,10 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     private BlockingQueue<PubAck> pubAckChan;
     Options opts;
     io.nats.client.Connection nc;
-    io.nats.client.Dispatcher dispatcher;
+    io.nats.client.Dispatcher ackDispatcher;
+    io.nats.client.Dispatcher messageDispatcher;
+    io.nats.client.Dispatcher heartbeatDispatcher;
+    Map<String, io.nats.client.Dispatcher> customDispatchers;
 
     io.nats.client.NUID nuid;
 
@@ -119,22 +123,32 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             this.hbSubject = this.newInbox();
             this.ackSubject = String.format("%s.%s", NatsStreaming.DEFAULT_ACK_PREFIX, this.nuid.next());
 
-            this.dispatcher = nc.createDispatcher(msg -> {
+            this.ackDispatcher = nc.createDispatcher(msg -> {
                 String subject = msg.getSubject();
-
-                if(this.hbSubject.equals(subject)) {
-                    this.processHeartBeat(msg);
-                } else if (this.ackSubject.equals(subject)) {
+                if (this.ackSubject.equals(subject)) {
                     this.processAck(msg);
-                } else {
-                    this.processMsg(msg);
                 }
             });
 
-            this.dispatcher.subscribe(this.hbSubject);
-            this.dispatcher.subscribe(this.ackSubject);
+            this.heartbeatDispatcher = nc.createDispatcher(msg -> {
+                String subject = msg.getSubject();
+                if(this.hbSubject.equals(subject)) {
+                    this.processHeartBeat(msg);
+                }
+            });
 
-            this.dispatcher.setPendingLimits(-1, -1);
+            this.messageDispatcher = nc.createDispatcher(msg -> {
+                this.processMsg(msg);
+            });
+
+            this.heartbeatDispatcher.subscribe(this.hbSubject);
+            this.ackDispatcher.subscribe(this.ackSubject);
+
+            this.heartbeatDispatcher.setPendingLimits(-1, -1);
+            this.ackDispatcher.setPendingLimits(-1, -1);
+            this.messageDispatcher.setPendingLimits(-1, -1);
+
+            this.customDispatchers = new HashMap<>();
 
             // Send Request to discover the cluster
             String discoverSubject = String.format("%s.%s", opts.getDiscoverPrefix(), clusterId);
@@ -231,11 +245,24 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 }
                 ackTimer.cancel();
 
+                if (this.messageDispatcher != null && this.messageDispatcher.isActive()) {
+                    nc.closeDispatcher(this.messageDispatcher);
+                }
 
-                if (this.dispatcher != null && this.dispatcher.isActive()) {
-                    this.dispatcher.unsubscribe(this.ackSubject);
-                    this.dispatcher.unsubscribe(this.hbSubject);
-                    nc.closeDispatcher(this.dispatcher);
+                for (Dispatcher d : this.customDispatchers.values()) {
+                    if (d.isActive()) {
+                        nc.closeDispatcher(d);
+                    }
+                }
+
+                if (this.ackDispatcher != null && this.ackDispatcher.isActive()) {
+                    this.ackDispatcher.unsubscribe(this.ackSubject);
+                    nc.closeDispatcher(this.ackDispatcher);
+                }
+
+                if (this.heartbeatDispatcher != null && this.heartbeatDispatcher.isActive()) {
+                    this.heartbeatDispatcher.unsubscribe(this.hbSubject);
+                    nc.closeDispatcher(this.heartbeatDispatcher);
                 }
 
                 CloseRequest req = CloseRequest.newBuilder().setClientID(clientId).build();
@@ -375,6 +402,25 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         return guid;
     }
 
+    Dispatcher getCustomDispatcher(String name) {
+        Dispatcher d = null;
+        this.lock();
+        try {
+            d = customDispatchers.get(name);
+
+            if (d == null) {
+                d = this.getNatsConnection().createDispatcher(msg -> {
+                    this.processMsg(msg);
+                });
+                d.setPendingLimits(-1, -1);
+                customDispatchers.put(name, d);
+            }
+        } finally {
+            this.unlock();
+        }
+        return d;
+    }
+
     @Override
     public Subscription subscribe(String subject, io.nats.streaming.MessageHandler cb)
             throws IOException, InterruptedException, TimeoutException {
@@ -422,8 +468,15 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         // Hold lock throughout.
         sub.wLock();
         try {
+            String dname = opts.getDispatcherName();
+            Dispatcher d = this.messageDispatcher;
+
+            if (dname != null && !dname.isEmpty()) {
+                d = this.getCustomDispatcher(dname);
+            }
+
             // Listen for actual messages
-            this.dispatcher.subscribe(sub.inbox);
+            d.subscribe(sub.inbox);
 
             // Create a subscription request
             // FIXME(dlc) add others.
@@ -432,7 +485,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             Message reply = nc.request(subRequests, sr.toByteArray(), opts.getSubscriptionTimeout());
             
             if (reply == null) {
-                this.dispatcher.unsubscribe(sub.inbox);
+                d.unsubscribe(sub.inbox);
                 throw new IOException(ERR_SUB_REQ_TIMEOUT);
             }
 
@@ -440,11 +493,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             try {
                 response = SubscriptionResponse.parseFrom(reply.getData());
             } catch (InvalidProtocolBufferException e) {
-                this.dispatcher.unsubscribe(sub.inbox);
+                d.unsubscribe(sub.inbox);
                 throw e;
             }
             if (!response.getError().isEmpty()) {
-                this.dispatcher.unsubscribe(sub.inbox);
+                d.unsubscribe(sub.inbox);
                 throw new IOException(response.getError());
             }
             sub.setAckInbox(response.getAckInbox());

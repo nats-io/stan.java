@@ -31,6 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
+import io.nats.client.Connection.Status;
+
 public class PubSubTests {
     private static final String clusterName = "test-cluster";
     private static final String clientName = "me";
@@ -141,6 +143,8 @@ public class PubSubTests {
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
             Options options = new Options.Builder().natsUrl(srv.getURI()).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                assertTrue(sc.getNatsConnection().getStatus() == Status.CONNECTED);
+                assertTrue(((StreamingConnectionImpl)sc).messageDispatcher.isActive());
 
                 final int toSend = 100;
                 byte[] hw = "Hello World".getBytes();
@@ -179,6 +183,9 @@ public class PubSubTests {
 
                 // Capture the messages that are delivered.
                 final List<Message> msgs = new CopyOnWriteArrayList<>();
+
+                assertTrue(sc.getNatsConnection().getStatus() == Status.CONNECTED);
+                assertTrue(((StreamingConnectionImpl)sc).messageDispatcher.isActive());
 
                 // Test we only receive MaxInflight if we do not ack
                 try (Subscription sub = sc.subscribe("foo", msg -> {

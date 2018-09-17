@@ -123,7 +123,7 @@ class SubscriptionImpl implements Subscription {
             if (sc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_BAD_SUBSCRIPTION);
             }
-            sc.dispatcher.unsubscribe(this.inbox);
+            sc.messageDispatcher.unsubscribe(this.inbox);
 
             this.sc = null;
 

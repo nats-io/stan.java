@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 2.1.0
+
+* [Added] Added named dispatchers to subscriptions to allow application control of callback threads
+* [#100] Split internal callback dispatchers to prevent application code blocking heartbeats
+
 ## Version 2.0.3
 
 * [#93] Made it easier to set the error and connection listener on a stream connection
