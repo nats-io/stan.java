@@ -206,7 +206,7 @@ public class SubscriptionOptions {
         result = 31 * result + (ackWait != null ? ackWait.hashCode() : 0);
         result = 31 * result + (startAt != null ? startAt.hashCode() : 0);
         result = 31 * result + (int) (startSequence ^ (startSequence >>> 32));
-        result = 31 * result + (startTime != null ? startTime.hashCode() : 0);
+        result = 31 * result + (startTime != null ? startTime.getNano() : 0);
         result = 31 * result + (dispatcher != null ? dispatcher.hashCode() : 0);
         result = 31 * result + (manualAcks ? 1 : 0);
         return result;

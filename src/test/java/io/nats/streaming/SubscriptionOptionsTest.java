@@ -218,5 +218,11 @@ public class SubscriptionOptionsTest {
         assertEquals(opts.hashCode(), copy.hashCode());
         assertEquals(opts, copy);
         assertNotNull(opts.toString());
+        
+        opts = new SubscriptionOptions.Builder().dispatcher("one").build();
+        copy = new SubscriptionOptions.Builder().dispatcher("one").build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
     }
 }
