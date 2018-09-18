@@ -935,27 +935,28 @@ public class SubscribeTests {
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, args, false)) {
             Options options = new Options.Builder().natsUrl(srv.getURI()).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
-                final int count = 5;
-                final int sleep = 1337; // Nice leet number so we get odd overlaps with HB
+                int max = 10;
+                final int sleep = 5000;
 
-                for (int i = 1; i <= count; i++) {
-                    byte[] data = String.format("%d", i).getBytes();
-                    sc.publish("foo", data);
-                }
+                byte[] data = String.format("%d", -1).getBytes();
+                sc.publish("foo", data);
                 sc.getNatsConnection().flush(Duration.ofSeconds(1));
 
                 final CountDownLatch latch = new CountDownLatch(1);
+                final CountDownLatch latch2 = new CountDownLatch(1);
                 final AtomicInteger received = new AtomicInteger(0);
 
                 // Capture the messages that are delivered.
                 MessageHandler mcb = msg -> {
-                    if (received.incrementAndGet() >= count) {
+                    if (latch.getCount() > 0) {
+                        try {
+                            Thread.sleep(sleep);
+                        } catch (Exception exp) {
+                            //ignore
+                        }
                         latch.countDown();
-                    }
-                    try {
-                        Thread.sleep(sleep);
-                    } catch (Exception exp) {
-                        //ignore
+                    } else if (received.incrementAndGet() >= max) {
+                        latch2.countDown();
                     }
                 };
 
@@ -963,8 +964,16 @@ public class SubscribeTests {
                 try (Subscription sub = sc.subscribe("foo", mcb,
                         new SubscriptionOptions.Builder().deliverAllAvailable().build())) {
 
-                    assertTrue("Did not receive our messages", latch.await(3 * count * sleep, TimeUnit.SECONDS));
-                    assertEquals("Got wrong number of msgs", count, received.get());
+                    assertTrue("Did not receive the first message", latch.await(3 * sleep, TimeUnit.SECONDS));
+
+                    for (int count = 0;count < max;count++) {
+                        data = String.format("%d", count).getBytes();
+                        sc.publish("foo", data);
+                    }
+
+                    sc.getNatsConnection().flush(Duration.ofSeconds(1));
+                    assertTrue("Did not receive our messages", latch2.await(3 * sleep, TimeUnit.SECONDS));
+                    assertEquals("Got wrong number of msgs", max, received.get());
                 }
             }
         }

@@ -124,17 +124,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             this.ackSubject = String.format("%s.%s", NatsStreaming.DEFAULT_ACK_PREFIX, this.nuid.next());
 
             this.ackDispatcher = nc.createDispatcher(msg -> {
-                String subject = msg.getSubject();
-                if (this.ackSubject.equals(subject)) {
-                    this.processAck(msg);
-                }
+                this.processAck(msg);
             });
 
             this.heartbeatDispatcher = nc.createDispatcher(msg -> {
-                String subject = msg.getSubject();
-                if(this.hbSubject.equals(subject)) {
-                    this.processHeartBeat(msg);
-                }
+                this.processHeartBeat(msg);
             });
 
             this.messageDispatcher = nc.createDispatcher(msg -> {
@@ -256,12 +250,10 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 }
 
                 if (this.ackDispatcher != null && this.ackDispatcher.isActive()) {
-                    this.ackDispatcher.unsubscribe(this.ackSubject);
                     nc.closeDispatcher(this.ackDispatcher);
                 }
 
                 if (this.heartbeatDispatcher != null && this.heartbeatDispatcher.isActive()) {
-                    this.heartbeatDispatcher.unsubscribe(this.hbSubject);
                     nc.closeDispatcher(this.heartbeatDispatcher);
                 }
 
