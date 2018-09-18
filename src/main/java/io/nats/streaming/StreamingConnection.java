@@ -151,7 +151,7 @@ public interface StreamingConnection extends AutoCloseable {
      */
     Subscription subscribe(String subject, String queue, MessageHandler cb,
                            SubscriptionOptions opts) throws IOException, InterruptedException, TimeoutException;
-
+                           
     /**
      * Returns the underlying NATS connection. Use with caution, especially if you didn't create the
      * connection.

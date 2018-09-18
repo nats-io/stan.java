@@ -68,6 +68,14 @@ class NatsStreamingTestServer implements AutoCloseable {
         start();
     }
 
+    public NatsStreamingTestServer(String clusterId, String[] customArgs, boolean debug) {
+        this.port = NatsStreamingTestServer.nextPort();
+        this.clusterId = clusterId;
+        this.debug = debug;
+        this.customArgs = customArgs;
+        start();
+    }
+
     public static int nextPort() {
         return NatsStreamingTestServer.portCounter.incrementAndGet();
     }

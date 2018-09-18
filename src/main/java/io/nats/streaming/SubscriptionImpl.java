@@ -19,6 +19,7 @@ import static io.nats.streaming.NatsStreaming.ERR_UNSUB_REQ_TIMEOUT;
 import static io.nats.streaming.NatsStreaming.PFX;
 
 import io.nats.client.Connection;
+import io.nats.client.Dispatcher;
 import io.nats.streaming.protobuf.SubscriptionResponse;
 import io.nats.streaming.protobuf.UnsubscribeRequest;
 import java.io.IOException;
@@ -123,7 +124,9 @@ class SubscriptionImpl implements Subscription {
             if (sc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_BAD_SUBSCRIPTION);
             }
-            sc.dispatcher.unsubscribe(this.inbox);
+
+            Dispatcher d = sc.getDispatcherByName(this.getOptions().getDispatcherName());
+            d.unsubscribe(this.inbox);
 
             this.sc = null;
 
@@ -133,21 +136,21 @@ class SubscriptionImpl implements Subscription {
 
         sc.lock();
         try {
-            if (sc.nc == null) {
+            // Snapshot connection to avoid data race, since the connection may be
+            // closing while we try to send the request
+            nc = sc.getNatsConnection();
+            if (nc == null) {
                 throw new IllegalStateException(NatsStreaming.ERR_CONNECTION_CLOSED);
             }
 
             sc.subMap.remove(this.inbox);
-            reqSubject = sc.unsubRequests;
-            if (!unsubscribe) {
-                reqSubject = sc.subCloseRequests;
-                if (reqSubject.isEmpty()) {
-                    throw new IllegalStateException(ERR_NO_SERVER_SUPPORT);
-                }
+            reqSubject = sc.subCloseRequests;
+            if (unsubscribe) {
+                reqSubject = sc.unsubRequests;
             }
-            // Snapshot connection to avoid data race, since the connection may be
-            // closing while we try to send the request
-            nc = sc.getNatsConnection();
+            if (reqSubject.isEmpty()) {
+                throw new IllegalStateException(ERR_NO_SERVER_SUPPORT);
+            }
         } finally {
             sc.unlock();
         }

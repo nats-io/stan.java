@@ -207,14 +207,24 @@ public class SubscriptionOptionsTest {
         assertEquals(opts, copy);
         assertNotNull(opts.toString());
         
-        opts = new SubscriptionOptions.Builder().startAtTime(Instant.now()).build();
-        copy = new SubscriptionOptions.Builder().startAtTime(Instant.now()).build();
+        Instant now = Instant.now();
+        opts = new SubscriptionOptions.Builder().startAtTime(now).build();
+        copy = new SubscriptionOptions.Builder().startAtTime(now).build();
         assertEquals(opts.hashCode(), copy.hashCode());
         assertEquals(opts, copy);
         assertNotNull(opts.toString());
         
+        /*
+         * The values depend on Instant.now, so can't be run reliably. Also, the comparison is the same as startAtTime.
         opts = new SubscriptionOptions.Builder().startAtTimeDelta(Duration.ofMinutes(1)).build();
         copy = new SubscriptionOptions.Builder().startAtTimeDelta(Duration.ofMinutes(1)).build();
+        assertEquals(opts.hashCode(), copy.hashCode());
+        assertEquals(opts, copy);
+        assertNotNull(opts.toString());
+        */
+        
+        opts = new SubscriptionOptions.Builder().dispatcher("one").build();
+        copy = new SubscriptionOptions.Builder().dispatcher("one").build();
         assertEquals(opts.hashCode(), copy.hashCode());
         assertEquals(opts, copy);
         assertNotNull(opts.toString());

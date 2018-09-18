@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -445,6 +446,61 @@ public class SubscribeTests {
     }
 
     @Test
+    public void testSubscriptionNamedDispatcher() throws Exception {
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                final int count = 10;
+
+                for (int i = 1; i <= count; i++) {
+                    byte[] data = String.format("%d", i).getBytes();
+                    sc.publish("foo", data);
+                }
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
+
+                final CountDownLatch latch = new CountDownLatch(3);
+                final AtomicInteger received = new AtomicInteger(0);
+                final AtomicInteger received2 = new AtomicInteger(0);
+                final AtomicInteger received3 = new AtomicInteger(0);
+                final HashSet<Thread> threads = new HashSet<>();
+
+                // Capture the messages that are delivered.
+                MessageHandler mcb = msg -> {
+                    threads.add(Thread.currentThread());
+                    if (received.incrementAndGet() >= count) {
+                        latch.countDown();
+                    }
+                };
+                MessageHandler mcb2 = msg -> {
+                    threads.add(Thread.currentThread());
+                    if (received2.incrementAndGet() >= count) {
+                        latch.countDown();
+                    }
+                };
+                MessageHandler mcb3 = msg -> {
+                    threads.add(Thread.currentThread());
+                    if (received3.incrementAndGet() >= count) {
+                        latch.countDown();
+                    }
+                };
+
+                // Should receive all messages.
+                try (Subscription sub = sc.subscribe("foo", mcb,
+                        new SubscriptionOptions.Builder().deliverAllAvailable().build());
+                        Subscription sub2 = sc.subscribe("foo", mcb2,
+                           new SubscriptionOptions.Builder().deliverAllAvailable().dispatcher("one").build());
+                        Subscription sub3 = sc.subscribe("foo", mcb3,
+                            new SubscriptionOptions.Builder().deliverAllAvailable().dispatcher("two").build());) {
+
+                    assertTrue("Did not receive our messages", latch.await(5, TimeUnit.SECONDS));
+                    assertEquals("Got wrong number of msgs", count * 3, received.get() + received2.get() + received3.get());
+                    assertEquals("Got wrong number of threads", 3, threads.size());
+                }
+            }
+        }
+    }
+
+    @Test
     public void testUnsubscribe() throws Exception {
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
             Options options = new Options.Builder().natsUrl(srv.getURI()).build();
@@ -737,13 +793,13 @@ public class SubscribeTests {
                         received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
                     }
                     latch.countDown();
-                }, new SubscriptionOptions.Builder().deliverAllAvailable()
-                        .durableName("durable-foo").build());
+                }, new SubscriptionOptions.Builder().durableName("durable-foo").deliverAllAvailable().build());
 
                 assertTrue("Did not receive first delivery of all messages",
                         latch.await(5, TimeUnit.SECONDS));
-                assertEquals("should get first message", received.get(), 0);
+                assertEquals("should get first message", 0, received.get());
 
+                try {Thread.sleep(2000);} catch(Exception e) {}; // get the ack in the queue
                 sub.close(); // Should not unsub
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
                 try {Thread.sleep(2000);} catch(Exception e) {}; // Give the server time to clean up
@@ -757,18 +813,19 @@ public class SubscribeTests {
                 counter++;
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
                 
+                // Note - start position should be ignored here, if this is an unsub it won't be
                 final Subscription sub2 = sc.subscribe("foo", msg -> {
                     if (latch2.getCount() > 0) {
                         received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
                     }
                     latch2.countDown();
-                }, new SubscriptionOptions.Builder().deliverAllAvailable()
-                        .durableName("durable-foo").build());
+                }, new SubscriptionOptions.Builder().durableName("durable-foo").deliverAllAvailable().build());
 
                 assertTrue("Did not receive first delivery of all messages",
                         latch2.await(5, TimeUnit.SECONDS));
-                assertEquals("should get second message", received.get(), 1);
+                assertEquals("should get second message", 1, received.get());
 
+                try {Thread.sleep(2000);} catch(Exception e) {}; // get the ack in the queue
                 sub2.close(true); // Should unsub
                 sc.getNatsConnection().flush(Duration.ofSeconds(2));
                 try {Thread.sleep(2000);} catch(Exception e) {}; // Give the server time to clean up
@@ -787,8 +844,7 @@ public class SubscribeTests {
                         received.set(Integer.parseInt(new String(msg.getData(), StandardCharsets.UTF_8)));
                     }
                     latch3.countDown();
-                }, new SubscriptionOptions.Builder().deliverAllAvailable()
-                        .durableName("durable-foo").build());
+                }, new SubscriptionOptions.Builder().durableName("durable-foo").deliverAllAvailable().build());
 
                 assertTrue("Did receive first delivery of all messages",
                         latch3.await(5, TimeUnit.SECONDS));
@@ -866,6 +922,58 @@ public class SubscribeTests {
                     // Make sure we've received the exact count of sent messages.
                     assertEquals("Didn't get expected number of messages.", sent.get(), received.get());
 
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testSubscriptionCantBlockHeartbeat() throws Exception {
+        String args[] = {"-hbi", "1s",
+                        "-hbt", "1s",
+                        "-hbf", "1"};
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, args, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                int max = 10;
+                final int sleep = 5000;
+
+                byte[] data = String.format("%d", -1).getBytes();
+                sc.publish("foo", data);
+                sc.getNatsConnection().flush(Duration.ofSeconds(1));
+
+                final CountDownLatch latch = new CountDownLatch(1);
+                final CountDownLatch latch2 = new CountDownLatch(1);
+                final AtomicInteger received = new AtomicInteger(0);
+
+                // Capture the messages that are delivered.
+                MessageHandler mcb = msg -> {
+                    if (latch.getCount() > 0) {
+                        try {
+                            Thread.sleep(sleep);
+                        } catch (Exception exp) {
+                            //ignore
+                        }
+                        latch.countDown();
+                    } else if (received.incrementAndGet() >= max) {
+                        latch2.countDown();
+                    }
+                };
+
+                // Should receive all messages, and heartbeat should be ok despite sleeps in callback.
+                try (Subscription sub = sc.subscribe("foo", mcb,
+                        new SubscriptionOptions.Builder().deliverAllAvailable().build())) {
+
+                    assertTrue("Did not receive the first message", latch.await(3 * sleep, TimeUnit.SECONDS));
+
+                    for (int count = 0;count < max;count++) {
+                        data = String.format("%d", count).getBytes();
+                        sc.publish("foo", data);
+                    }
+
+                    sc.getNatsConnection().flush(Duration.ofSeconds(1));
+                    assertTrue("Did not receive our messages", latch2.await(3 * sleep, TimeUnit.SECONDS));
+                    assertEquals("Got wrong number of msgs", max, received.get());
                 }
             }
         }
