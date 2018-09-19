@@ -14,7 +14,7 @@ plugins {
 // Update version here, repeated check-ins not into master will have snapshot on them
 def versionMajor = 2
 def versionMinor = 1
-def versionPatch = 0
+def versionPatch = 1
 def versionModifier = ""
 def branch = System.getenv("TRAVIS_BRANCH");
 
@@ -56,7 +56,7 @@ dependencies {
 
     testImplementation 'junit:junit:4.12'
 
-    implementation 'io.nats:jnats:[2.0.0,)'
+    implementation 'io.nats:jnats:[2.1.0,)'
 }
 
 sourceSets {
@@ -104,7 +104,7 @@ clean {
 jar {
     manifest {
         attributes('Implementation-Title': 'Java Nats Streaming',
-                   'Implementation-Version': '2.0.1',
+                   'Implementation-Version': '2.1.1',
                    'Implementation-Vendor': 'nats.io')
     }
     exclude("io/nats/streaming/examples/**")
@@ -146,7 +146,7 @@ task examplesJar(type: Jar) {
     classifier = 'examples'
     manifest {
         attributes('Implementation-Title': 'Java Nats Streaming Examples',
-                   'Implementation-Version': '2.0.1',
+                   'Implementation-Version': '2.1.1',
                    'Implementation-Vendor': 'nats.io')
     }
     from(sourceSets.main.output) {
