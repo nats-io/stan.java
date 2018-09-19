@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 2.1.1
+
+* [Changed] Dependency on java nats to 2.1.0
+* [Fixed] A couple issues with versions in jars
+
 ## Version 2.1.0
 
 * [Added] Added named dispatchers to subscriptions to allow application control of callback threads
