@@ -52,7 +52,6 @@ repositories {
 
 dependencies {
     compile 'com.google.protobuf:protobuf-java:[3.6,4.0)'
-    compile 'com.google.guava:guava:18.0'
 
     testImplementation 'junit:junit:4.12'
 
