@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 2.1.2
+
+* [Removed] Dependency on guava
+
 ## Version 2.1.1
 
 * [Changed] Dependency on java nats to 2.1.0
