@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 2.1.3
+
+* [Fixed] Protocol buffer build issues #112
+* [Fixed] Made use of ossh password optional #111
+* [Fixed] Typo in readme pointing to java repo #110
+
 ## Version 2.1.2
 
 * [Removed] Dependency on guava
