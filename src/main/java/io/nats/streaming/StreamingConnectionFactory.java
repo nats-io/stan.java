@@ -14,6 +14,9 @@
 package io.nats.streaming;
 
 import io.nats.client.Connection;
+import io.nats.client.ConnectionListener;
+import io.nats.client.ErrorListener;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +35,8 @@ public class StreamingConnectionFactory {
     private Connection natsConn;
     private String clientId;
     private String clusterId;
+    private ConnectionListener connListener;
+    private ErrorListener errListener;
 
     public StreamingConnectionFactory() {
     }
@@ -58,7 +63,7 @@ public class StreamingConnectionFactory {
     Options options() {
         return new Options.Builder().connectWait(connectTimeout).pubAckWait(ackTimeout)
                 .discoverPrefix(discoverPrefix).maxPubAcksInFlight(maxPubAcksInFlight)
-                .natsConn(natsConn).natsUrl(natsUrl).build();
+                .natsConn(natsConn).natsUrl(natsUrl).connectionListener(connListener).errorListener(errListener).build();
     }
 
     /**
@@ -241,5 +246,39 @@ public class StreamingConnectionFactory {
         }
 
         this.clusterId = clusterId;
+    }
+
+    /**
+     * @return the connection listener configured for this factory
+     */
+    public ConnectionListener getConnectionListener() {
+        return this.connListener;
+    }
+
+    /**
+     * Set a connection listener for the underlying nats connection.
+     * 
+     * @param l The new connection listener
+     */
+    public void setConnectionListener(ConnectionListener l) {
+        this.connListener = l;
+    }
+
+    /**
+     * 
+     * @return the error listener associated with this factory
+     */
+    public ErrorListener getErrorListener() {
+        return this.errListener;
+    }
+
+
+    /**
+     * Set a error listener for the underlying nats connection.
+     * 
+     * @param l The new error listener
+     */
+    public void setErrorListener(ErrorListener l) {
+        this.errListener = l;
     }
 }

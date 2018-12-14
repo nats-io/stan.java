@@ -73,11 +73,60 @@ public class OptionsTests {
     }
 
     @Test
+    public void testErrorListenerViaFactory() throws Exception {
+        TestHandler handler = new TestHandler();
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            StreamingConnectionFactory factory = new StreamingConnectionFactory(clusterName, clientName);
+            factory.setNatsUrl(srv.getURI());
+            factory.setErrorListener(handler);
+            try (StreamingConnection sc = factory.createConnection()) {
+                final CountDownLatch latch = new CountDownLatch(1);
+                assertNotNull(sc);
+
+                SubscriptionOptions sopts = new SubscriptionOptions.Builder().build();
+                Subscription sub = sc.subscribe("foo", msg -> {
+                    latch.countDown();
+                    throw new RuntimeException(); // trigger the error handler
+                }, sopts);
+                assertNotNull(sub);
+
+                sc.publish("foo", "Hello World!".getBytes());
+
+                // Wait for the latch, then wait a bit more for the exception to flow to the handler
+                latch.await(1, TimeUnit.SECONDS);
+                try {
+                    Thread.sleep(500);
+                } catch (Exception ex) {
+                    // ignore
+                }
+                assertEquals(handler.getExceptionCount(), 1);
+            }
+        }
+    }
+
+    @Test
     public void testConnectionListener() throws Exception {
         TestHandler handler = new TestHandler();
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
             Options options = new Options.Builder().natsUrl(srv.getURI()).connectionListener(handler).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                assertNotNull(sc);
+                assertEquals(handler.getEventCount(Events.CONNECTED), 1);
+                assertNotNull(handler.getConnection());
+            }
+        }
+
+        assertEquals(handler.getEventCount(Events.CLOSED), 1);
+    }
+
+    @Test
+    public void testConnectionListenerViaFactory() throws Exception {
+        TestHandler handler = new TestHandler();
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            StreamingConnectionFactory factory = new StreamingConnectionFactory(clusterName, clientName);
+            factory.setNatsUrl(srv.getURI());
+            factory.setConnectionListener(handler);
+            try (StreamingConnection sc = factory.createConnection()) {
                 assertNotNull(sc);
                 assertEquals(handler.getEventCount(Events.CONNECTED), 1);
                 assertNotNull(handler.getConnection());
