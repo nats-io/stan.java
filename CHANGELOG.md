@@ -2,6 +2,7 @@
 
 ## Version 2.1.3
 
+* [Added] Methods to include error and connection listener with factory #113
 * [Fixed] Protocol buffer build issues #112
 * [Fixed] Made use of ossh password optional #111
 * [Fixed] Typo in readme pointing to java repo #110
