@@ -19,6 +19,9 @@ import static org.junit.Assert.assertNotNull;
 import java.time.Duration;
 import org.junit.Test;
 
+import io.nats.client.ConnectionListener;
+import io.nats.client.ErrorListener;
+
 public class StreamingConnectionFactoryTest {
     private static final String clusterName = "test-cluster";
     private static final String clientName = "me";
@@ -55,6 +58,12 @@ public class StreamingConnectionFactoryTest {
         cf.setDiscoverPrefix("_FOO");
         cf.setMaxPubAcksInFlight(1000);
 
+        ErrorListener err = new TestHandler();
+        ConnectionListener conn = new TestHandler();
+
+        cf.setErrorListener(err);
+        cf.setConnectionListener(conn);
+
         cf.setNatsUrl("nats://foobar:1234");
 
         Options opts = cf.options();
@@ -65,6 +74,8 @@ public class StreamingConnectionFactoryTest {
         assertEquals(cf.getMaxPubAcksInFlight(), opts.getMaxPubAcksInFlight());
         assertEquals(cf.getNatsUrl(), opts.getNatsUrl());
         assertEquals(cf.getNatsConnection(), opts.getNatsConn());
+        assertEquals(cf.getConnectionListener(), opts.getConnectionListener());
+        assertEquals(cf.getErrorListener(), opts.getErrorListener());
     }
 
     @Test(expected = NullPointerException.class)

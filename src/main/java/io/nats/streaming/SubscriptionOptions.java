@@ -379,6 +379,7 @@ public class SubscriptionOptions {
          * 
          * A unique dispatcher will be created automatically for each name. Reusing the name reuses the dispatcher.
          * 
+         * @param dispatcherName the shared name to use for the dispatcher
          * @return this
          */
         public Builder dispatcher(String dispatcherName) {

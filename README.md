@@ -360,8 +360,8 @@ Subscription sub2 = sc.subscribe("foo", mcb2,
 The build depends on Gradle, and contains `gradlew` to simplify the process. After cloning, you can build the repository and run the tests with a single command:
 
 ```bash
-> git clone https://github.com/nats-io/java-nats.git
-> cd java-nats
+> git clone https://github.com/nats-io/java-nats-streaming.git
+> cd java-nats-streaming
 > ./gradlew build
 ```
 

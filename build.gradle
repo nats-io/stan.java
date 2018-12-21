@@ -14,9 +14,9 @@ plugins {
 // Update version here, repeated check-ins not into master will have snapshot on them
 def versionMajor = 2
 def versionMinor = 1
-def versionPatch = 2
+def versionPatch = 3
 def versionModifier = ""
-def jarVersion = "2.1.2"
+def jarVersion = "2.1.3"
 def branch = System.getenv("TRAVIS_BRANCH");
 
 def getVersionName = { ->
@@ -64,6 +64,9 @@ sourceSets {
         java.srcDirs = ['gen/main/java']
     }
     main {
+        proto {
+            srcDir 'src/main/proto'
+        }
         java {
             srcDirs = ['src/main/java', 'src/examples/java', 'gen/main/java']
         }
@@ -191,7 +194,7 @@ uploadArchives {
             repository(url: "file://$buildDir/repos")
             if (project.hasProperty("local_archives") || ("true".equals(System.getenv("TRAVIS_PULL_REQUEST")))) {
                 repository(url: "file://$buildDir/repos")
-            } else {
+            } else if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
