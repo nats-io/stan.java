@@ -257,7 +257,6 @@ public class StreamingConnectionFactory {
 
     /**
      * Set a connection listener for the underlying nats connection.
-     * 
      * @param l The new connection listener
      */
     public void setConnectionListener(ConnectionListener l) {
@@ -265,7 +264,6 @@ public class StreamingConnectionFactory {
     }
 
     /**
-     * 
      * @return the error listener associated with this factory
      */
     public ErrorListener getErrorListener() {
@@ -275,7 +273,6 @@ public class StreamingConnectionFactory {
 
     /**
      * Set a error listener for the underlying nats connection.
-     * 
      * @param l The new error listener
      */
     public void setErrorListener(ErrorListener l) {
