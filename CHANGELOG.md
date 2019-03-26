@@ -1,5 +1,8 @@
 # Change Log
 
+## Version 2.1.4
+
+
 ## Version 2.1.3
 
 * [Added] Methods to include error and connection listener with factory #113
