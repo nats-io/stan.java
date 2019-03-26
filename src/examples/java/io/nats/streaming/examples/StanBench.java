@@ -183,7 +183,7 @@ public class StanBench {
                         .natsConn(nc)
                         .build();
 
-                final StreamingConnection sc = NatsStreaming.connect(clusterId, clientId, opts);
+                final StreamingConnection sc = NatsStreaming.connect(clusterId, this.workerClientId, opts);
                 final SubscriptionOptions sopts;
 
                 if (ignoreOld) {
