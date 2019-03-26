@@ -82,5 +82,10 @@ public interface Subscription extends AutoCloseable {
      * @see io.nats.streaming.SubscriptionOptions
      */
     SubscriptionOptions getOptions();
+
+    /**
+     * @return the inbox used by this subscription for acks.
+     */
+    String getAckInbox();
 }
 
