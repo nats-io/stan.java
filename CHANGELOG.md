@@ -2,6 +2,7 @@
 
 ## Version 2.1.4
 
+* [Fixed] - #121 - Set protobuf dependency to 3.6.1 to avoid breaking version.
 
 ## Version 2.1.3
 
