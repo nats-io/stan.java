@@ -24,6 +24,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * A {@code StreamingConnectionFactory} object encapsulates a set of connection configuration
  * options. A client uses it to create a connection to the NATS streaming data system.
+ * 
+ * This class provides some options that are mapped to the underlying NATS connection, but you can
+ * also create a streaming connection from an existing NATS core connection. Using an existing connection
+ * allows complete control over the core NATS options.
  */
 public class StreamingConnectionFactory {
     private Duration ackTimeout = SubscriptionOptions.DEFAULT_ACK_WAIT;
