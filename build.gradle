@@ -14,9 +14,9 @@ plugins {
 // Update version here, repeated check-ins not into master will have snapshot on them
 def versionMajor = 2
 def versionMinor = 1
-def versionPatch = 3
+def versionPatch = 4
 def versionModifier = ""
-def jarVersion = "2.1.3"
+def jarVersion = "2.1.4"
 def branch = System.getenv("TRAVIS_BRANCH");
 
 def getVersionName = { ->
@@ -52,7 +52,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.google.protobuf:protobuf-java:[3.6,4.0)'
+    compile 'com.google.protobuf:protobuf-java:3.6.1'
 
     testImplementation 'junit:junit:4.12'
 

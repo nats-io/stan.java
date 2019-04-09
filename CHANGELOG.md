@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 2.1.4
+
+* [Fixed] - #121 - Set protobuf dependency to 3.6.1 to avoid breaking version.
+* [Fixed] - #119 - Fixed issue with client ids in stan bench when multiple subscribers are used.
+* [Fixed] - #95 - Made ack inbox publicly available on subscriber.
+
 ## Version 2.1.3
 
 * [Added] Methods to include error and connection listener with factory #113

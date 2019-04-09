@@ -73,7 +73,7 @@ class SubscriptionImpl implements Subscription {
         rwlock.writeLock().unlock();
     }
 
-    String getAckInbox() {
+    public String getAckInbox() {
         return this.ackInbox;
     }
 
