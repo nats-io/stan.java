@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 2.1.6
+
+* [Changed] - Updates for repo rename
+
 ## Version 2.1.5
 
 * [Changed] - Updates for renames related to NATS server and its repo.

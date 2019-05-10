@@ -14,9 +14,9 @@ plugins {
 // Update version here, repeated check-ins not into master will have snapshot on them
 def versionMajor = 2
 def versionMinor = 1
-def versionPatch = 5
+def versionPatch = 6
 def versionModifier = ""
-def jarVersion = "2.1.5"
+def jarVersion = "2.1.6"
 def branch = System.getenv("TRAVIS_BRANCH");
 
 def getVersionName = { ->
@@ -209,8 +209,8 @@ uploadArchives {
             pom.project {
                 name 'jnats'
                 packaging 'jar'
-                description 'Client library for working with the NATS messaging system.'
-                url 'https://github.com/nats-io/java-nats'
+                description 'Client library for working with the NATS streaming system.'
+                url 'https://github.com/nats-io/stan.java'
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
@@ -226,7 +226,7 @@ uploadArchives {
                     }
                 }
                 scm {
-                    url = 'https://github.com/nats-io/java-nats'
+                    url = 'https://github.com/nats-io/jstan.java'
                 }
             }
         }
