@@ -1,9 +1,13 @@
 # Change Log
 
+## Version 2.1.5
+
+* [Changed] - Updates for renames related to NATS server and its repo.
+
 ## Version 2.1.4
 
 * [Fixed] - #121 - Set protobuf dependency to 3.6.1 to avoid breaking version.
-* [Fixed] - #119 - Fixed issue with client ids in stan bench when multiple subscribers are used.
+* [Fixed] - #119 - Fixed an issue with client ids in stan bench when multiple subscribers are used.
 * [Fixed] - #95 - Made ack inbox publicly available on subscriber.
 
 ## Version 2.1.3
