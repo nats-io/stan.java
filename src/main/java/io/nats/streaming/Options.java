@@ -41,7 +41,7 @@ public class Options {
     }
 
     /**
-     * @return the nats url to use to connect to gnatsd.
+     * @return the nats url to use to connect to the NATS server.
      */
     String getNatsUrl() {
         return natsUrl;
@@ -202,7 +202,7 @@ public class Options {
         }
 
         /**
-         * Manually set the gnatsd connection
+         * Manually set the NATS connection
          * 
          * @param natsConn a valid nats connection (from the latest version of the
          *                 library)
@@ -214,7 +214,7 @@ public class Options {
         }
 
         /**
-         * Set the url to connect to for gnatsd
+         * Set the url to connect to for NATS
          * 
          * @param natsUrl a valid nats url, see the client library for more information
          * @return the builder for chaining

@@ -12,7 +12,9 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 
 ## A Note on Versions
 
-This is version 2.1.4 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+This is version 2.1.5 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+
+As of 2.1.5 the NATS server is undergoing a rename, as are the NATS repositories.
 
 The new version minimizes threads. Only one thread is used for all callbacks, by relying on a dispatcher in the underlying NATS connection. If you want to deliver in multiple threads, you can use multiple StreamingConnections on the same underlying NATS connection. This reduces total thread usage while allowing callbacks to work independently. See [Sharing A NATS Connection](#sharing-a-nats-connection).
 
@@ -26,9 +28,9 @@ The nats streaming client requires two jar files to run, the java nats library a
 
 ### Downloading the Jar
 
-You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.1.4/jnats-2.1.4.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.1.4/jnats-2.1.4.jar).
+You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.1.5/jnats-2.1.5.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.1.5/jnats-2.1.5.jar).
 
-You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.4/java-nats-streaming-2.1.4.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.4/java-nats-streaming-2.1.4.jar).
+You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.5/java-nats-streaming-2.1.5.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.5/java-nats-streaming-2.1.5.jar).
 
 ### Using Gradle
 
@@ -36,7 +38,7 @@ The NATS client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:java-nats-streaming:2.1.4'
+    implementation 'io.nats:java-nats-streaming:2.1.5'
 }
 ```
 
@@ -62,7 +64,7 @@ The NATS client is available on the Maven central repository, and can be importe
 <dependency>
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>2.1.4</version>
+    <version>2.1.5</version>
 </dependency>
 ```
 
@@ -347,7 +349,7 @@ you have to close `two` before you close `one` to avoid an exception.
 
 ### Controlling Callback Threads
 
-The underlying NATS library uses the concept of dispatchers to organize callback threads. You can leverage this feature in 2.1.4 or later of this
+The underlying NATS library uses the concept of dispatchers to organize callback threads. You can leverage this feature in 2.x or later of this
 library by setting a dispatcher name on your subscriptions.
 
 ```java
@@ -388,7 +390,7 @@ The java doc is located in `build/docs` and the example jar is in `build/libs`. 
 
 which will create a folder called `build/reports/jacoco` containing the file `index.html` you can open and use to browse the coverage. Keep in mind we have focused on library test coverage, not coverage for the examples.
 
-Many of the tests run gnatsd on a custom port. If gnatsd is in your path they should just work, but in cases where it is not, or an IDE running tests has issues with the path you can specify the gnatsd location with the environment variable `gnatsd_path`.
+Many of the tests run nats-streaming-server on a custom port. If the `nats-streaming-server` is in your path they should just work, but in cases where it is not, or an IDE running tests has issues with the path you can specify the server location with the environment variable `stan_path`.
 
 ## License
 
