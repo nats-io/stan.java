@@ -5,16 +5,16 @@
 A [Java](http://java.com) client for the [NATS streaming platform](https://nats.io).
 
 [![License Apache 2.0](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Build Status](https://travis-ci.org/nats-io/java-nats-streaming.svg?branch=master)](http://travis-ci.org/nats-io/java-nats-streaming?branch=master)
-[![Coverage Status](https://coveralls.io/repos/github/nats-io/java-nats-streaming/badge.svg?branch=master)](https://coveralls.io/github/nats-io/java-nats-streaming?branch=master)
+[![Build Status](https://travis-ci.org/nats-io/stan.java.svg?branch=master)](http://travis-ci.org/nats-io/stan.java?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/nats-io/stan.java/badge.svg?branch=master)](https://coveralls.io/github/nats-io/stan.java?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
 [![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
 
 ## A Note on Versions
 
-This is version 2.1.5 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts.
+This is version 2.1.5 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts. For 2.1.6 we are renaming this repo to stan.java.
 
-As of 2.1.5 the NATS server is undergoing a rename, as are the NATS repositories.
+As of 2.1.6 the NATS server is undergoing a rename, as are the NATS repositories.
 
 The new version minimizes threads. Only one thread is used for all callbacks, by relying on a dispatcher in the underlying NATS connection. If you want to deliver in multiple threads, you can use multiple StreamingConnections on the same underlying NATS connection. This reduces total thread usage while allowing callbacks to work independently. See [Sharing A NATS Connection](#sharing-a-nats-connection).
 
@@ -28,9 +28,9 @@ The nats streaming client requires two jar files to run, the java nats library a
 
 ### Downloading the Jar
 
-You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.1.5/jnats-2.1.5.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.1.5/jnats-2.1.5.jar).
+You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.4.6/jnats-2.4.6.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.4.6/jnats-2.4.6.jar).
 
-You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.5/java-nats-streaming-2.1.5.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.5/java-nats-streaming-2.1.5.jar).
+You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.6/java-nats-streaming-2.1.6.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.6/java-nats-streaming-2.1.6.jar).
 
 ### Using Gradle
 
@@ -38,7 +38,7 @@ The NATS client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:java-nats-streaming:2.1.5'
+    implementation 'io.nats:java-nats-streaming:2.1.6'
 }
 ```
 
@@ -64,7 +64,7 @@ The NATS client is available on the Maven central repository, and can be importe
 <dependency>
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>2.1.5</version>
+    <version>2.1.6</version>
 </dependency>
 ```
 
@@ -362,8 +362,8 @@ Subscription sub2 = sc.subscribe("foo", mcb2,
 The build depends on Gradle, and contains `gradlew` to simplify the process. After cloning, you can build the repository and run the tests with a single command:
 
 ```bash
-> git clone https://github.com/nats-io/java-nats-streaming.git
-> cd java-nats-streaming
+> git clone https://github.com/nats-io/stan.java.git
+> cd stan.java
 > ./gradlew build
 ```
 
