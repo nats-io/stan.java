@@ -7,8 +7,8 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 [![License Apache 2.0](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Build Status](https://travis-ci.org/nats-io/stan.java.svg?branch=master)](http://travis-ci.org/nats-io/stan.java?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/nats-io/stan.java/badge.svg?branch=master)](https://coveralls.io/github/nats-io/stan.java?branch=master)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/stan.java/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/stan.java)
-[![Javadoc](http://javadoc.io/badge/io.nats/stan.java.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.nats/java-nats-streaming)
+[![Javadoc](http://javadoc.io/badge/io.nats/stan.java.svg)](http://javadoc.io/doc/io.nats/stan.java)
 
 ## A Note on Versions
 
