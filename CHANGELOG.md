@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 2.2.0
+
+* [Changed] - Updated version of protobuf and nats.java libraries
+
 ## Version 2.1.6
 
 * [Changed] - Updates for repo rename

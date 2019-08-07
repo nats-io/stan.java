@@ -13,10 +13,10 @@ plugins {
 
 // Update version here, repeated check-ins not into master will have snapshot on them
 def versionMajor = 2
-def versionMinor = 1
-def versionPatch = 6
+def versionMinor = 2
+def versionPatch = 0
 def versionModifier = ""
-def jarVersion = "2.1.6"
+def jarVersion = "2.2.0"
 def branch = System.getenv("TRAVIS_BRANCH");
 
 def getVersionName = { ->
@@ -52,11 +52,11 @@ repositories {
 }
 
 dependencies {
-    compile 'com.google.protobuf:protobuf-java:3.6.1'
+    compile 'com.google.protobuf:protobuf-java:3.9.1'
 
     testImplementation 'junit:junit:4.12'
 
-    implementation 'io.nats:jnats:[2.1.0,)'
+    implementation 'io.nats:jnats:[2.6.0,)'
 }
 
 sourceSets {
@@ -84,7 +84,7 @@ osgiClasses {
 
 protobuf {
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.6+'
+        artifact = 'com.google.protobuf:protoc:3.9+'
     }
 
     generateProtoTasks.generatedFilesBaseDir = 'gen'

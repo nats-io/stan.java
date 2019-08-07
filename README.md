@@ -30,7 +30,7 @@ The nats streaming client requires two jar files to run, the java nats library a
 
 You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.4.6/jnats-2.4.6.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.4.6/jnats-2.4.6.jar).
 
-You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.6/java-nats-streaming-2.1.6.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.1.6/java-nats-streaming-2.1.6.jar).
+You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.0/java-nats-streaming-2.2.0.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.0/java-nats-streaming-2.2.0.jar).
 
 ### Using Gradle
 
@@ -38,7 +38,7 @@ The NATS client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:java-nats-streaming:2.1.6'
+    implementation 'io.nats:java-nats-streaming:2.2.0'
 }
 ```
 
@@ -64,7 +64,7 @@ The NATS client is available on the Maven central repository, and can be importe
 <dependency>
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>2.1.6</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
