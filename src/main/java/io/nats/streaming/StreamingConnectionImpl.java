@@ -84,24 +84,31 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     boolean ncOwned = false;
 
-    StreamingConnectionImpl(String stanClusterId, String clientId) {
-        this(stanClusterId, clientId, null);
+    StreamingConnectionImpl(String clusterId, String clientId, Options opts) {
+        this.clusterId = clusterId;
+        this.clientId = clientId;
+        this.nuid = new NUID();
+        this.opts = opts;
+
+        if (opts == null) { 
+            opts = new Options.Builder().build();
+        }
+        
+        // Check if the user has provided a connection as an option
+        if (this.opts.getNatsConn() != null) {
+            setNatsConnection(this.opts.getNatsConn());
+        }
     }
 
-    StreamingConnectionImpl(String stanClusterId, String clientId, Options opts) {
-        this.clusterId = stanClusterId;
-        this.clientId = clientId;
-
+    StreamingConnectionImpl(Options opts) {
+        this.clusterId = opts.getClusterId();
+        this.clientId = opts.getClientId();
         this.nuid = new NUID();
-
-        if (opts == null) {
-            this.opts = new Options.Builder().build();
-        } else {
-            this.opts = opts;
-            // Check if the user has provided a connection as an option
-            if (this.opts.getNatsConn() != null) {
-                setNatsConnection(this.opts.getNatsConn());
-            }
+        this.opts = opts;
+        
+        // Check if the user has provided a connection as an option
+        if (this.opts.getNatsConn() != null) {
+            setNatsConnection(this.opts.getNatsConn());
         }
     }
 

@@ -3,6 +3,7 @@
 ## Version 2.2.0
 
 * [Changed] - Updated version of protobuf and nats.java libraries
+* [Deprecated] - ConnectionFactory property accessors are deprecated in favor of using an Options.Builder directly.
 
 ## Version 2.1.6
 

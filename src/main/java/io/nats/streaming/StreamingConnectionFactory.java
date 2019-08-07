@@ -13,7 +13,6 @@
 
 package io.nats.streaming;
 
-import io.nats.client.Connection;
 import io.nats.client.ConnectionListener;
 import io.nats.client.ErrorListener;
 
@@ -28,26 +27,38 @@ import java.util.concurrent.TimeUnit;
  * This class provides some options that are mapped to the underlying NATS connection, but you can
  * also create a streaming connection from an existing NATS core connection. Using an existing connection
  * allows complete control over the core NATS options.
+ * 
+ * As of version 2.2.0 the way this class should be used has changed and accessors on this class are
+ * deprecated. Instead create an Options.Builder, set the attributes there and assign that options builder
+ * to a connection factory with setOptions or use the new constructor. New properties will only be added
+ * to the options class and not replicated here. The existing accessors work, but should be moved away from.
  */
 public class StreamingConnectionFactory {
-    private Duration ackTimeout = SubscriptionOptions.DEFAULT_ACK_WAIT;
-    private Duration connectTimeout = Duration.ofSeconds(NatsStreaming
-            .DEFAULT_CONNECT_WAIT);
-    private String discoverPrefix = NatsStreaming.DEFAULT_DISCOVER_PREFIX;
-    private int maxPubAcksInFlight = NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT;
-    private String natsUrl = NatsStreaming.DEFAULT_NATS_URL;
-    private Connection natsConn;
-    private String clientId;
-    private String clusterId;
-    private ConnectionListener connListener;
-    private ErrorListener errListener;
+    private Options.Builder options;
 
+    /**
+     * Create a new, un-configured, connection factory.
+     * 
+     * The cluster and client id must be set before use.
+     */
     public StreamingConnectionFactory() {
+        options = new Options.Builder();
     }
 
+    /**
+     * Create a connection factory with the specified cluster and client ids.
+     */
     public StreamingConnectionFactory(String clusterId, String clientId) {
-        setClusterId(clusterId);
-        setClientId(clientId);
+        this();
+        this.options.clusterId(clusterId).clientId(clientId);
+    }
+
+    /**
+     * Create a connection factory with the specified cluster and client ids.
+     */
+    public StreamingConnectionFactory(Options options) {
+        this();
+        this.setOptions(options);
     }
 
     /**
@@ -59,33 +70,42 @@ public class StreamingConnectionFactory {
      *                              be established
      */
     public StreamingConnection createConnection() throws IOException, InterruptedException {
-        StreamingConnectionImpl conn = new StreamingConnectionImpl(clusterId, clientId, options());
+        StreamingConnectionImpl conn = new StreamingConnectionImpl(options());
         conn.connect();
         return conn;
     }
 
+    /**
+     * Copies the options for use in future connections.
+     * 
+     * @param o the options to copy
+     */
+    public void setOptions(Options o) {
+        this.options = new Options.Builder(o);
+    }
+
     Options options() {
-        return new Options.Builder().connectWait(connectTimeout).pubAckWait(ackTimeout)
-                .discoverPrefix(discoverPrefix).maxPubAcksInFlight(maxPubAcksInFlight)
-                .natsConn(natsConn).natsUrl(natsUrl).connectionListener(connListener).errorListener(errListener).build();
+        return this.options.build();
     }
 
     /**
      * Returns the ACK timeout.
      *
+     * @deprecated use options directly
      * @return the pubAckWait
      */
     public Duration getAckTimeout() {
-        return ackTimeout;
+        return this.options.getAckTimeout();
     }
 
     /**
      * Sets the ACK timeout duration.
      *
      * @param ackTimeout the pubAckWait to set
+     * @deprecated use options directly
      */
     public void setAckTimeout(Duration ackTimeout) {
-        this.ackTimeout = ackTimeout;
+        this.options.pubAckWait(ackTimeout);
     }
 
     /**
@@ -93,27 +113,30 @@ public class StreamingConnectionFactory {
      *
      * @param ackTimeout the pubAckWait to set
      * @param unit       the time unit to set
+     * @deprecated use options directly
      */
     public void setAckTimeout(long ackTimeout, TimeUnit unit) {
-        this.ackTimeout = Duration.ofMillis(unit.toMillis(ackTimeout));
+        this.options.pubAckWait(Duration.ofMillis(unit.toMillis(ackTimeout)));
     }
 
     /**
      * Returns the connect timeout interval in milliseconds.
      *
      * @return the connectWait
+     * @deprecated use options directly
      */
     public Duration getConnectTimeout() {
-        return connectTimeout;
+        return this.options.getConnectTimeout();
     }
 
     /**
      * Sets the connect timeout duration.
      *
      * @param connectTimeout the connectWait to set
+     * @deprecated use options directly
      */
     public void setConnectTimeout(Duration connectTimeout) {
-        this.connectTimeout = connectTimeout;
+        this.options.connectWait(connectTimeout);
     }
 
     /**
@@ -121,9 +144,10 @@ public class StreamingConnectionFactory {
      *
      * @param connectTimeout the connectWait to set
      * @param unit           the time unit to set
+     * @deprecated use options directly
      */
     public void setConnectTimeout(long connectTimeout, TimeUnit unit) {
-        this.connectTimeout = Duration.ofMillis(unit.toMillis(connectTimeout));
+        this.options.connectWait(Duration.ofMillis(unit.toMillis(connectTimeout)));
     }
 
 
@@ -131,81 +155,80 @@ public class StreamingConnectionFactory {
      * Returns the currently configured discover prefix string.
      *
      * @return the discoverPrefix
+     * @deprecated use options directly
      */
     public String getDiscoverPrefix() {
-        return discoverPrefix;
+        return this.options.getDiscoverPrefix();
     }
 
     /**
      * Sets the discover prefix string that is used to establish a nats streaming session.
      *
      * @param discoverPrefix the discoverPrefix to set
+     * @deprecated use options directly
      */
     public void setDiscoverPrefix(String discoverPrefix) {
-        if (discoverPrefix == null) {
-            throw new NullPointerException("stan: discoverPrefix must be non-null");
-        }
-        this.discoverPrefix = discoverPrefix;
+        this.options.discoverPrefix(discoverPrefix);
     }
 
     /**
      * Returns the maximum number of publish ACKs that may be in flight at any point in time.
      *
      * @return the maxPubAcksInFlight
+     * @deprecated use options directly
      */
     public int getMaxPubAcksInFlight() {
-        return maxPubAcksInFlight;
+        return this.options.getMaxPubAcksInFlight();
     }
 
     /**
      * Sets the maximum number of publish ACKs that may be in flight at any point in time.
      *
      * @param maxPubAcksInFlight the maxPubAcksInFlight to set
+     * @deprecated use options directly
      */
     public void setMaxPubAcksInFlight(int maxPubAcksInFlight) {
-        if (maxPubAcksInFlight < 0) {
-            throw new IllegalArgumentException("stan: max publish acks in flight must be >= 0");
-        }
-        this.maxPubAcksInFlight = maxPubAcksInFlight;
+        this.options.maxPubAcksInFlight(maxPubAcksInFlight);
     }
 
     /**
      * Returns the NATS connection URL.
      *
      * @return the NATS connection URL
+     * @deprecated use options directly
      */
     public String getNatsUrl() {
-        return natsUrl;
+        return this.options.getNatsUrl();
     }
 
     /**
      * Sets the NATS URL.
      *
      * @param natsUrl the natsUrl to set
+     * @deprecated use options directly
      */
     public void setNatsUrl(String natsUrl) {
-        if (natsUrl == null) {
-            throw new NullPointerException("stan: NATS URL must be non-null");
-        }
-        this.natsUrl = natsUrl;
+        this.options.natsUrl(natsUrl);
     }
 
     /**
      * Returns the NATS StreamingConnection, if set.
      *
      * @return the NATS StreamingConnection
+     * @deprecated use options directly
      */
     public io.nats.client.Connection getNatsConnection() {
-        return this.natsConn;
+        return this.options.getNatsConn();
     }
 
     /**
      * Sets the NATS StreamingConnection.
      *
      * @param natsConn the NATS connection to set
+     * @deprecated use options directly
      */
     public void setNatsConnection(io.nats.client.Connection natsConn) {
-        this.natsConn = natsConn;
+        this.options.natsConn(natsConn);
     }
 
 
@@ -213,73 +236,74 @@ public class StreamingConnectionFactory {
      * Returns the client ID of the current NATS streaming session.
      *
      * @return the client ID of the current NATS streaming session
+     * @deprecated use options directly
      */
     public String getClientId() {
-        return clientId;
+        return this.options.getClientId();
     }
 
     /**
      * Sets the client ID for the current NATS streaming session.
      *
      * @param clientId the clientId to set
+     * @deprecated use options directly
      */
     public void setClientId(String clientId) {
-        if (clientId == null) {
-            throw new NullPointerException("stan: client ID must be non-null");
-        }
-        this.clientId = clientId;
+        this.options.clientId(clientId);
     }
 
     /**
      * Returns the cluster ID of the current NATS streaming session.
      *
      * @return the clusterId
+     * @deprecated use options directly
      */
     public String getClusterId() {
-        return clusterId;
+        return this.options.getClusterID();
     }
 
     /**
      * Sets the cluster ID of the current NATS streaming session.
      *
      * @param clusterId the clusterId to set
+     * @deprecated use options directly
      */
     public void setClusterId(String clusterId) {
-        if (clusterId == null) {
-            throw new NullPointerException("stan: cluster ID must be non-null");
-        }
-
-        this.clusterId = clusterId;
+        this.options.clusterId(clusterId);
     }
 
     /**
      * @return the connection listener configured for this factory
+     * @deprecated use options directly
      */
     public ConnectionListener getConnectionListener() {
-        return this.connListener;
+        return this.options.getConnectionListener();
     }
 
     /**
      * Set a connection listener for the underlying nats connection.
      * @param l The new connection listener
+     * @deprecated use options directly
      */
     public void setConnectionListener(ConnectionListener l) {
-        this.connListener = l;
+        this.options.connectionListener(l);
     }
 
     /**
      * @return the error listener associated with this factory
+     * @deprecated use options directly
      */
     public ErrorListener getErrorListener() {
-        return this.errListener;
+        return this.options.getErrorListener();
     }
 
 
     /**
      * Set a error listener for the underlying nats connection.
      * @param l The new error listener
+     * @deprecated use options directly
      */
     public void setErrorListener(ErrorListener l) {
-        this.errListener = l;
+        this.options.errorListener(l);
     }
 }

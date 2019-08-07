@@ -11,8 +11,8 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 [![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
 
 ## A Note on Versions
-
-This is version 2.1.5 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts. For 2.1.6 we are renaming this repo to stan.java.
+ 
+This is version 2.2.0 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts. For 2.1.6 we are renaming this repo to stan.java.
 
 As of 2.1.6 the NATS server is undergoing a rename, as are the NATS repositories.
 
@@ -22,13 +22,18 @@ One big change is the move to gradle, and away from maven, as with the NATS libr
 
 Previous versions are still available in the repo.
 
+ As of version 2.2.0 the way StreamingConnectionFactory should be used has changed and accessors on that class are
+ deprecated. Instead create an Options.Builder, set the attributes there and assign that options builder
+ to a connection factory with setOptions or use the new constructor. New properties will only be added
+ to the options class and not replicated here. The existing accessors work, but should be moved away from.
+
 ## Installation
 
 The nats streaming client requires two jar files to run, the java nats library and the streaming library. See [Building From Source](#building-from-source) for details on building the library.
 
 ### Downloading the Jar
 
-You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.4.6/jnats-2.4.6.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.4.6/jnats-2.4.6.jar).
+You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.6.0/jnats-2.6.0.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.6.0/jnats-2.6.0.jar).
 
 You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.0/java-nats-streaming-2.2.0.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.0/java-nats-streaming-2.2.0.jar).
 
@@ -283,10 +288,8 @@ A classic problem of publish-subscribe messaging is matching the rate of message
 NATS Streaming provides a connection option called `MaxPubAcksInFlight` that effectively limits the number of unacknowledged messages that a publisher may have in-flight at any given time. When this maximum is reached, further `PublishAsync()` calls will block until the number of unacknowledged messages falls below the specified limit. ex:
 
 ```java
-StreamingConnectionFactory cf = new StreamingConnectionFactory("test-cluster", "client-123");
-cf.setMaxPubAcksInFlight(25);
-
-StreamingConnection sc = cf.createConnection();
+Options o = new Options.Builder().clusterId().clientId().maxPubAcksInFlight(25).build();
+StreamingConnection sc = new StreamingConnectionFactory(options).createConnection();
 
 AckHandler ah = new AckHandler() {
     public void onAck(String guid, Exception e) {
@@ -394,5 +397,4 @@ Many of the tests run nats-streaming-server on a custom port. If the `nats-strea
 
 ## License
 
-Unless otherwise noted, the NATS source files are distributed
-under the Apache Version 2.0 license found in the LICENSE file.
+Unless otherwise noted, the NATS source files are distributed under the Apache Version 2.0 license found in the LICENSE file.

@@ -28,6 +28,9 @@ public class Options {
     private final int maxPubAcksInFlight;
     private ErrorListener errorListener;
     private ConnectionListener connectionListener;
+    private String clientId;
+    private String clusterId;
+
 
     private Options(Builder builder) {
         this.natsUrl = builder.natsUrl;
@@ -38,6 +41,22 @@ public class Options {
         this.maxPubAcksInFlight = builder.maxPubAcksInFlight;
         this.connectionListener = builder.connectionListener;
         this.errorListener = builder.errorListener;
+        this.clientId = builder.clientId;
+        this.clusterId = builder.clusterId;
+    }
+
+    /**
+     * @return the client id
+     */
+    String getClientId() {
+        return clientId;
+    }
+
+    /**
+     * @return the cluster id
+     */
+    String getClusterId() {
+        return clusterId;
     }
 
     /**
@@ -110,8 +129,16 @@ public class Options {
         private int maxPubAcksInFlight = NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT;
         private ErrorListener errorListener;
         private ConnectionListener connectionListener;
+        private String clientId;
+        private String clusterId;
 
         public Builder() {
+            // set the defaults
+            this.pubAckWait(SubscriptionOptions.DEFAULT_ACK_WAIT).
+                connectWait(Duration.ofSeconds(NatsStreaming.DEFAULT_CONNECT_WAIT)).
+                discoverPrefix(NatsStreaming.DEFAULT_DISCOVER_PREFIX).
+                maxPubAcksInFlight(NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT).
+                natsUrl(NatsStreaming.DEFAULT_NATS_URL);
         }
 
         /**
@@ -127,6 +154,52 @@ public class Options {
             this.ackTimeout = template.ackTimeout;
             this.discoverPrefix = template.discoverPrefix;
             this.maxPubAcksInFlight = template.maxPubAcksInFlight;
+            this.connectionListener = template.connectionListener;
+            this.errorListener = template.errorListener;
+            this.clientId = template.clientId;
+            this.clusterId = template.clusterId;
+        }
+
+        /**
+         * Set the cluster id
+         * 
+         * @param clusterId the id for the streaming cluster ot connect to.
+         * @return the builder for chaining
+         */
+        public Builder clusterId(String clusterId) {
+            if (clusterId == null) {
+                throw new NullPointerException("stan: cluster ID must be non-null");
+            }    
+            this.clusterId = clusterId;
+            return this;
+        }
+
+        /**
+         * @return the cluster id for these options
+         */
+        public String getClusterID() {
+            return this.clusterId;
+        }
+
+        /**
+         * Set the client id for connections made with these options.
+         * 
+         * @param clientId the id for the streaming cluster ot connect to.
+         * @return the builder for chaining
+         */
+        public Builder clientId(String clientId) {
+            if (clientId == null) {
+                throw new NullPointerException("stan: client ID must be non-null");
+            }
+            this.clientId = clientId;
+            return this;
+        }
+
+        /**
+         * @return the client id for these options
+         */
+        public String getClientId() {
+            return this.clientId;
         }
 
         /**
@@ -186,6 +259,9 @@ public class Options {
          * @return the builder for chaining
          */
         public Builder discoverPrefix(String discoverPrefix) {
+            if (discoverPrefix == null) {
+                throw new NullPointerException("stan: discoverPrefix must be non-null");
+            }
             this.discoverPrefix = discoverPrefix;
             return this;
         }
@@ -197,6 +273,9 @@ public class Options {
          * @return the builder for chaining
          */
         public Builder maxPubAcksInFlight(int maxPubAcksInFlight) {
+            if (maxPubAcksInFlight < 0) {
+                throw new IllegalArgumentException("stan: max publish acks in flight must be >= 0");
+            }
             this.maxPubAcksInFlight = maxPubAcksInFlight;
             return this;
         }
@@ -220,6 +299,9 @@ public class Options {
          * @return the builder for chaining
          */
         public Builder natsUrl(String natsUrl) {
+            if (natsUrl == null || natsUrl.isEmpty()) {
+                throw new NullPointerException("stan: NATS URL must be non-null and not empty");
+            }
             this.natsUrl = natsUrl;
             return this;
         }
@@ -231,6 +313,65 @@ public class Options {
          */
         public Options build() {
             return new Options(this);
+        }
+
+        /**
+         * @return the nats url to use to connect to the NATS server.
+         */
+        String getNatsUrl() {
+            return natsUrl;
+        }
+
+        /**
+         * @return the error listener to associated with the underlying nats connection
+         *         if one isn't already set on it.
+         */
+        ErrorListener getErrorListener() {
+            return this.errorListener;
+        }
+
+        /**
+         * @return the connection listener to associated with the underlying nats connection
+         *         if one isn't already set on it.
+         */
+        ConnectionListener getConnectionListener() {
+            return this.connectionListener;
+        }
+
+        /**
+         * @return the underlying nats connection
+         */
+        io.nats.client.Connection getNatsConn() {
+            return natsConn;
+        }
+
+        /**
+         * @return the connect timeout
+         */
+        Duration getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        /**
+         * @return the ack timeout
+         */
+        Duration getAckTimeout() {
+            return ackTimeout;
+        }
+
+        /**
+         * @return the prefix used in discovery for the cluster
+         */
+        String getDiscoverPrefix() {
+            return discoverPrefix;
+        }
+
+        /**
+         * @return the maximum publish acks allowed at one time, subscription acks are
+         *         set up on the subscription options
+         */
+        int getMaxPubAcksInFlight() {
+            return maxPubAcksInFlight;
         }
     }
 }
