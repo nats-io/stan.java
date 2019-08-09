@@ -160,12 +160,22 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
             // Send Request to discover the cluster
             String discoverSubject = String.format("%s.%s", opts.getDiscoverPrefix(), clusterId);
+
+            // For tests we set to negative for millis
+            // otherwise convert to seconds
+            long pingInterval = opts.getPingInterval().toMillis();
+            if (pingInterval < 1000) {
+                pingInterval = -pingInterval;
+            } else {
+                pingInterval = pingInterval/1000;
+            }
+
             ConnectRequest req = ConnectRequest.newBuilder()
                     .setClientID(clientId)
                     .setConnID(ByteString.copyFromUtf8(this.connectionId))
                     .setHeartbeatInbox(this.hbSubject)
                     .setProtocol(NatsStreaming.PROTOCOL_ONE)
-                    .setPingInterval((int)(opts.getPingInterval().toMillis()/1000))
+                    .setPingInterval((int)pingInterval)
                     .setPingMaxOut(opts.getMaxPingsOut()).build();
 
             byte[] bytes = req.toByteArray();
@@ -304,7 +314,9 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 // Signals we are closed.
                 setNatsConnection(null);
 
-                pingTimer.cancel();
+                if (pingTimer != null) {
+                    pingTimer.cancel();
+                }
 
                 for (AckClosure ac : this.pubAckMap.values()) {
                     ac.ackTask.cancel();
@@ -404,7 +416,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     }
 
     /*
-     * PublishAsync will publish to the cluster on pubPrefix+subject and asynchronously process the
+     * Publish with an ack handler will publish to the cluster on pubPrefix+subject and asynchronously process the
      * ACK or error state. It will return the GUID for the message being sent.
      */
     @Override

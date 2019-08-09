@@ -350,7 +350,12 @@ public class ConnectTests {
 
                 Connection nc = sc.getNatsConnection();
 
-                nc.flush(Duration.ofSeconds(1));
+                //Trigger the disconnect logic
+                try {
+                    nc.flush(Duration.ofSeconds(1));
+                } catch (Exception ex) {
+                    //ignore, it should throw
+                }
 
                 int tries = 30;
 
@@ -404,6 +409,42 @@ public class ConnectTests {
                 } catch (Exception e) {
                     //
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testConnectionLostHandler() throws Exception {
+        TestHandler handler = new TestHandler();
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options opts = new Options.Builder()
+                        .natsUrl(srv.getURI())
+                        .connectionLostHandler(handler)
+                        .pingInterval(Duration.ofMillis(100))
+                        .maxPingsOut(2)
+                        .build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, opts)) {
+                // Shutdown server
+                srv.shutdown();
+
+                Connection nc = sc.getNatsConnection();
+
+                try {
+                    nc.close();
+                } catch (Exception ex) {
+                    //ignore, it should throw
+                }
+
+                // Wait for the pings
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception exp) 
+                {
+                    // ignore
+                }
+
+                assertFalse(nc.getStatus() == Connection.Status.CONNECTED);
+                assertNotNull(handler.getConnectionLostException());
             }
         }
     }

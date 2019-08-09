@@ -29,7 +29,7 @@ import io.nats.client.ConnectionListener;
 import io.nats.client.Consumer;
 import io.nats.client.ErrorListener;
 
-public class TestHandler implements ErrorListener, ConnectionListener {
+public class TestHandler implements ErrorListener, ConnectionListener, ConnectionLostHandler {
     private AtomicInteger count = new AtomicInteger();
 
     private HashMap<Events,AtomicInteger> eventCounts = new HashMap<>();
@@ -46,6 +46,7 @@ public class TestHandler implements ErrorListener, ConnectionListener {
     private ArrayList<Consumer> slowConsumers = new ArrayList<>();
 
     private boolean printExceptions = true;
+    private Exception connectionLostException;
 
     public void prepForStatusChange(Events waitFor) {
         lock.lock();
@@ -195,5 +196,13 @@ public class TestHandler implements ErrorListener, ConnectionListener {
 
     public void setPrintExceptions(boolean tf) {
         this.printExceptions = tf;
+    }
+
+    public void connectionLost(StreamingConnection conn, Exception ex) {
+        connectionLostException = ex;
+    }
+
+    public Exception getConnectionLostException() {
+        return connectionLostException;
     }
 }
