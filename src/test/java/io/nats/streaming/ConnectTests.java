@@ -340,7 +340,7 @@ public class ConnectTests {
                 // For this test, change the reqTimeout to a very low value
                 ((StreamingConnectionImpl)sc).lock();
                 try {
-                    ((StreamingConnectionImpl)sc).opts.connectTimeout = Duration.ofMillis(10);
+                    ((StreamingConnectionImpl)sc).opts = new Options.Builder(opts).connectWait(Duration.ofMillis(1)).build();
                 } finally {
                     ((StreamingConnectionImpl)sc).unlock();
                 }
@@ -350,7 +350,9 @@ public class ConnectTests {
 
                 Connection nc = sc.getNatsConnection();
 
-                int tries = 10;
+                nc.flush(Duration.ofSeconds(1));
+
+                int tries = 30;
 
                 // Wait for disconnect, could be a bit flaky if this is really slow
                 while (tries > 0 && nc.getStatus() == Connection.Status.CONNECTED) {

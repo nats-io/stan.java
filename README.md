@@ -27,6 +27,9 @@ Previous versions are still available in the repo.
  to a connection factory with setOptions or use the new constructor. New properties will only be added
  to the options class and not replicated here. The existing accessors work, but should be moved away from.
 
+ 2.2.0 also introduces the ConnectionLostHandler. The connection will ping the streaming server, if it supports the protocol,
+ to make sure it is up. This helps identify the cases where NATS is running the but the streaming server was lost.
+
 ## Installation
 
 The nats streaming client requires two jar files to run, the java nats library and the streaming library. See [Building From Source](#building-from-source) for details on building the library.

@@ -22,14 +22,17 @@ import io.nats.client.ErrorListener;
 public class Options {
     private final String natsUrl;
     private final io.nats.client.Connection natsConn;
-    Duration connectTimeout;
+    private Duration connectTimeout;
     private final Duration ackTimeout;
     private final String discoverPrefix;
     private final int maxPubAcksInFlight;
-    private ErrorListener errorListener;
-    private ConnectionListener connectionListener;
-    private String clientId;
-    private String clusterId;
+    private final ErrorListener errorListener;
+    private final ConnectionListener connectionListener;
+    private final ConnectionLostHandler lostHandler;
+    private final Duration pingInterval;
+    private final int pingsMaxOut;
+    private final String clientId;
+    private final String clusterId;
 
 
     private Options(Builder builder) {
@@ -43,6 +46,10 @@ public class Options {
         this.errorListener = builder.errorListener;
         this.clientId = builder.clientId;
         this.clusterId = builder.clusterId;
+
+        this.lostHandler = builder.lostHandler;
+        this.pingInterval = builder.pingInterval;
+        this.pingsMaxOut = builder.pingsMaxOut;
     }
 
     /**
@@ -83,6 +90,13 @@ public class Options {
     }
 
     /**
+     * @return the connection lost handler associated with these options.
+     */
+    ConnectionLostHandler getConnectionLostHandler() {
+        return this.lostHandler;
+    }
+
+    /**
      * @return the underlying nats connection
      */
     io.nats.client.Connection getNatsConn() {
@@ -118,6 +132,20 @@ public class Options {
         return maxPubAcksInFlight;
     }
 
+    /**
+     * @return the ping interval
+     */
+    Duration getPingInterval() {
+        return pingInterval;
+    }
+
+    /**
+     * @return the maximum number of pings allowed
+     */
+    int getMaxPingsOut() {
+        return pingsMaxOut;
+    }
+
     public static final class Builder implements Serializable {
         private static final long serialVersionUID = 4774214916207501660L;
 
@@ -131,6 +159,9 @@ public class Options {
         private ConnectionListener connectionListener;
         private String clientId;
         private String clusterId;
+        private ConnectionLostHandler lostHandler;
+        private Duration pingInterval;
+        private int pingsMaxOut;
 
         public Builder() {
             // set the defaults
@@ -138,7 +169,9 @@ public class Options {
                 connectWait(Duration.ofSeconds(NatsStreaming.DEFAULT_CONNECT_WAIT)).
                 discoverPrefix(NatsStreaming.DEFAULT_DISCOVER_PREFIX).
                 maxPubAcksInFlight(NatsStreaming.DEFAULT_MAX_PUB_ACKS_IN_FLIGHT).
-                natsUrl(NatsStreaming.DEFAULT_NATS_URL);
+                natsUrl(NatsStreaming.DEFAULT_NATS_URL).
+                maxPingsOut(NatsStreaming.DEFAULT_MAX_PINGS_OUT).
+                pingInterval(NatsStreaming.DEFAULT_PING_INTERVAL);
         }
 
         /**
@@ -158,6 +191,9 @@ public class Options {
             this.errorListener = template.errorListener;
             this.clientId = template.clientId;
             this.clusterId = template.clusterId;
+            this.pingsMaxOut = template.pingsMaxOut;
+            this.pingInterval = template.pingInterval;
+            this.lostHandler = template.lostHandler;
         }
 
         /**
@@ -225,6 +261,19 @@ public class Options {
          */
         public Builder connectionListener(ConnectionListener listener) {
             this.connectionListener = listener;
+            return this;
+        }
+
+        /**
+         * Provide an lost handler to be notified if the streaming server doesn't
+         * answer the client's pings. The nats server may stay up when the streaming
+         * server goes down so this handler should respond accordingly.
+         * 
+         * @param handler the ConnectionLostHandler
+         * @return the builder for chaining
+         */
+        public Builder connectionLostHandler(ConnectionLostHandler handler) {
+            this.lostHandler = handler;
             return this;
         }
 
@@ -303,6 +352,30 @@ public class Options {
                 throw new NullPointerException("stan: NATS URL must be non-null and not empty");
             }
             this.natsUrl = natsUrl;
+            return this;
+        }
+
+        /**
+         * Set the max pings that can be out to the server before it is considered lost.
+         * 
+         * @param max the maxPings out
+         * @return the builder for chaining
+         */
+        public Builder maxPingsOut(int max) {
+            this.pingsMaxOut = max;
+            return this;
+        }
+
+        /**
+         * Set the time between pings to the server, if it is supported.
+         * 
+         * The server may override this.
+         * 
+         * @param interval the time between server pings
+         * @return the builder for chaining
+         */
+        public Builder pingInterval(Duration interval) {
+            this.pingInterval = interval;
             return this;
         }
 

@@ -2,6 +2,7 @@
 
 ## Version 2.2.0
 
+* [Changed] - don't spin up message dispatcher unless needed, saving a few threads when custom dispatchers are used
 * [Changed] - Updated version of protobuf and nats.java libraries
 * [Deprecated] - ConnectionFactory property accessors are deprecated in favor of using an Options.Builder directly.
 

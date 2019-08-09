@@ -47,6 +47,9 @@ public class StreamingConnectionFactory {
 
     /**
      * Create a connection factory with the specified cluster and client ids.
+     * 
+     * @param clusterId the cluster id to connect to
+     * @param clientId the id for this client, with respect to the cluster
      */
     public StreamingConnectionFactory(String clusterId, String clientId) {
         this();
@@ -55,10 +58,11 @@ public class StreamingConnectionFactory {
 
     /**
      * Create a connection factory with the specified cluster and client ids.
+     * 
+     * @param options the options to create this factory with
      */
     public StreamingConnectionFactory(Options options) {
-        this();
-        this.setOptions(options);
+        this.options = new Options.Builder(options);
     }
 
     /**

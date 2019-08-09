@@ -165,7 +165,7 @@ class SubscriptionImpl implements Subscription {
 
         try {
             Future<io.nats.client.Message> incoming = nc.request(reqSubject, bytes);
-            reply = incoming.get(sc.opts.connectTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            reply = incoming.get(sc.opts.getConnectTimeout().toMillis(), TimeUnit.MILLISECONDS);
             if (reply == null) {
                 if (unsubscribe) {
                     throw new IOException(ERR_UNSUB_REQ_TIMEOUT);
