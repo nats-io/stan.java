@@ -53,7 +53,7 @@ public interface StreamingConnection extends AutoCloseable {
      * caching attempt.
      * 
      * @param subject the subject to which the message is to be published
-     * @param data    the message payload
+     * @param data    the message payload, if an ack handler is used, this data is saved to pass to it and should not be reused
      * @param ah      the {@link AckHandler} to invoke when an ack is received, passing the
      *                message GUID
      *                and any error information.

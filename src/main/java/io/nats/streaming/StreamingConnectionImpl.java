@@ -375,10 +375,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         }
     }
 
-    AckClosure createAckClosure(AckHandler ah, BlockingQueue<String> ch) {
-        return new AckClosure(ah, ch);
-    }
-
     private SubscriptionImpl createSubscription(String subject, String qgroup,
                                                 io.nats.streaming.MessageHandler cb,
                                                 StreamingConnectionImpl conn,
@@ -431,12 +427,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         String ackSubject;
         Duration ackTimeout;
         BlockingQueue<PubAck> pac;
-        final AckClosure a;
+        final AckClosure a= new AckClosure(ah, subject, (ah != null) ? data : null, ch);
         final PubMsg pe;
         String guid;
         byte[] bytes;
 
-        a = createAckClosure(ah, ch);
         this.lock();
         try {
             if (getNatsConnection() == null) {
@@ -657,7 +652,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     ex = new IOException(ackError);
                 }
                 // Perform the ackHandler callback
-                ackClosure.ah.onAck(pa.getGuid(), ex);
+                ackClosure.ah.onAck(pa.getGuid(), ackClosure.subject, ackClosure.data, ex);
+
+                // clean up to allow GC of data
+                ackClosure.subject = null;
+                ackClosure.data = null;
             } else if (ackClosure.ch != null) {
                 try {
                     ackClosure.ch.put(ackError);
@@ -687,7 +686,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             return;
         }
         if (ackClosure.ah != null) {
-            ackClosure.ah.onAck(guid, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
+            ackClosure.ah.onAck(guid, ackClosure.subject, ackClosure.data, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
         }
     }
 
@@ -946,11 +945,15 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     class AckClosure {
         TimerTask ackTask;
         AckHandler ah;
+        String subject;
+        byte[] data;
         BlockingQueue<String> ch;
 
-        AckClosure(final AckHandler ah, final BlockingQueue<String> ch) {
+        AckClosure(final AckHandler ah, final String subject, final byte[] data, final BlockingQueue<String> ch) {
             this.ah = ah;
             this.ch = ch;
+            this.subject = subject;
+            this.data = data;
         }
     }
 }

@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -67,14 +68,19 @@ public class PublishTests {
     public void testTimeoutPublishAsync() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         final String[] guid = new String[1];
+        byte[] data = "Hello World!".getBytes();
+        String subject = "foo";
+
         // Run a STAN server
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
             Options opts = new Options.Builder().pubAckWait(Duration.ofMillis(500)).natsUrl(srv.getURI()).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, opts)) {
                 assertNotNull(sc);
-                AckHandler acb = (lguid, ex) -> {
-                    assertTrue(ex instanceof TimeoutException);
-                    latch.countDown();
+                AckHandler acb = new AckHandler() {
+                        public void onAck(String nuid, Exception ex) {
+                            assertTrue(ex instanceof TimeoutException);
+                            latch.countDown();
+                        };
                 };
 
                 // Kill the NATS Streaming server so we timeout
@@ -91,11 +97,57 @@ public class PublishTests {
                     tries--;
                 }
 
-                guid[0] = sc.publish("foo", "Hello World!".getBytes(), acb);
+                guid[0] = sc.publish(subject, data, acb);
                 assertNotNull(guid[0]);
                 assertFalse("Expected non-empty guid to be returned.", guid[0].isEmpty());
                 assertTrue("Did not receive our ack callback with a timeout err",
                         latch.await(2, TimeUnit.SECONDS));
+            } // will throw on close
+        }
+    }
+
+    @Test(expected=IOException.class)
+    public void testTimeoutPublishAsyncWithData() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final String[] guid = new String[1];
+        byte[] data = "Hello World!".getBytes();
+        String subject = "foo";
+
+        // Run a STAN server
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options opts = new Options.Builder().pubAckWait(Duration.ofMillis(500)).natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, opts)) {
+                assertNotNull(sc);
+                AckHandler acb = new AckHandler() {
+                        public void onAck(String nuid, Exception ex) {
+                            assertTrue(ex instanceof TimeoutException);
+                        };
+                        public void onAck(String nuid, String s, byte[] d, Exception ex) {
+                            assertTrue(ex instanceof TimeoutException);
+                            assertEquals(s, subject);
+                            assertTrue(Arrays.equals(d, data));
+                            latch.countDown();
+                        };
+                };
+
+                // Kill the NATS Streaming server so we timeout
+                srv.shutdown();
+
+                int tries = 20;
+                while (tries > 0 && sc.getNatsConnection().getStatus() == Status.CONNECTED) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception exp)
+                    {
+                        //ignore
+                    }
+                    tries--;
+                }
+
+                guid[0] = sc.publish(subject, data, acb);
+                assertNotNull(guid[0]);
+                assertFalse("Expected non-empty guid to be returned.", guid[0].isEmpty());
+                assertTrue("Did not receive our ack callback with a timeout err", latch.await(2, TimeUnit.SECONDS));
             } // will throw on close
         }
     }
