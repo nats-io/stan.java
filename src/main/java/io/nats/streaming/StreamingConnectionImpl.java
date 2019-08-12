@@ -40,6 +40,8 @@ import io.nats.streaming.protobuf.SubscriptionResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
@@ -120,9 +122,23 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         this(opts.getClusterId(), opts.getClientId(), opts);
     }
 
+    void timeTrace(boolean trace, String format, Object... args) {
+        if (trace) {
+            String timeStr = DateTimeFormatter.ISO_TIME.format(LocalDateTime.now());
+            System.out.printf("[%s] connect trace: ", timeStr);
+            System.out.printf(format, args);
+            System.out.println();
+
+        }
+    }
+
     // Connect will form a connection to the STAN subsystem.
     StreamingConnectionImpl connect() throws IOException, InterruptedException {
         boolean exThrown = false;
+        boolean trace = opts.isTraceConnection();
+
+        timeTrace(trace, "starting connection to streaming cluster %s as %s", this.clusterId, this.clientId);
+
         io.nats.client.Connection nc = getNatsConnection();
         // Create a NATS connection if it doesn't exist
         if (nc == null) {
@@ -132,17 +148,23 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         } else if (nc.getStatus() != Connection.Status.CONNECTED) {
             // Bail if the custom NATS connection is disconnected
             throw new IOException(NatsStreaming.ERR_BAD_CONNECTION);
+        } else {
+            timeTrace(trace, "skipped NATS connection, using existing one");
         }
 
         try {
+            timeTrace(trace, "creating inboxes");
             this.hbSubject = this.newInbox();
             this.pingInbox = this.newInbox();
             this.ackSubject = String.format("%s.%s", NatsStreaming.DEFAULT_ACK_PREFIX, this.nuid.next());
 
+            timeTrace(trace, "creating ack dispatcher");
             this.ackDispatcher = nc.createDispatcher(msg -> {
                 this.processAck(msg);
             });
+            this.ackDispatcher.subscribe(this.ackSubject);
 
+            timeTrace(trace, "creating hb/ping dispatcher and subscribing");
             this.dispatcher = nc.createDispatcher(msg -> {});
             this.hbSub = this.dispatcher.subscribe(this.hbSubject, msg -> {
                 this.processHeartBeat(msg);
@@ -152,8 +174,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 this.processPing(msg);
             });
 
-            this.ackDispatcher.subscribe(this.ackSubject);
-
+            timeTrace(trace, "setting pending limits on dispatchers");
             this.dispatcher.setPendingLimits(-1, -1);
             this.ackDispatcher.setPendingLimits(-1, -1);
 
@@ -171,6 +192,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 pingInterval = pingInterval/1000;
             }
 
+            timeTrace(trace, "sending connection request");
             ConnectRequest req = ConnectRequest.newBuilder()
                     .setClientID(clientId)
                     .setConnID(ByteString.copyFromUtf8(this.connectionId))
@@ -186,6 +208,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 throw new IOException(ERR_CONNECTION_REQ_TIMEOUT);
             }
             
+            timeTrace(trace, "received connection request");
             ConnectResponse cr = ConnectResponse.parseFrom(reply.getData());
             if (!cr.getError().isEmpty()) {
                 // This is already a properly formatted streaming error message
@@ -204,6 +227,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             boolean unsubPings = true;
 
             if (cr.getProtocol() >= NatsStreaming.PROTOCOL_ONE) {
+                timeTrace(trace, "setting up server ping");
+
                 // Note that in the future server may override client ping
                 // interval value sent in ConnectRequest, so use the
                 // value in ConnectResponse to decide if we send PINGs
@@ -246,6 +271,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             }
             
             if (unsubPings) {
+                timeTrace(trace, "removing ping subscriber, not supported by server");
                 this.dispatcher.unsubscribe(pingSub);
                 this.pingSub = null;
             }
@@ -267,6 +293,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 } catch (Exception e) {
                     /* NOOP -- can't do anything if close fails */
                 }
+            } else {
+                timeTrace(trace, "connection complete");
             }
         }
         return this;
@@ -276,13 +304,16 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         io.nats.client.Connection nc = null;
         if (getNatsConnection() == null) {
             if (opts.getNatsUrl() != null) {
-                io.nats.client.Options natsOpts = new io.nats.client.Options.Builder().
+                io.nats.client.Options.Builder natsOpts = new io.nats.client.Options.Builder().
                                                     connectionName(clientId).
                                                     errorListener(opts.getErrorListener()).
                                                     connectionListener(opts.getConnectionListener()).
-                                                    server(opts.getNatsUrl()).
-                                                    build();
-                nc = Nats.connect(natsOpts);
+                                                    server(opts.getNatsUrl());
+                if (opts.isTraceConnection()) {
+                    natsOpts.traceConnection();
+                }
+                
+                nc = Nats.connect(natsOpts.build());
             } else {
                 nc = Nats.connect();
             }

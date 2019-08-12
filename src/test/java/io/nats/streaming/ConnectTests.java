@@ -23,7 +23,10 @@ import static org.junit.Assert.fail;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Connection.Status;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.time.Duration;
 import java.util.Set;
 import org.junit.Test;
@@ -143,6 +146,53 @@ public class ConnectTests {
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
                 assertNotNull(sc);
             }
+        }
+    }
+
+    @Test
+    public void testConnectWithTracing() throws Exception {
+        PrintStream defaultOut = System.out;
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(bytes);
+        System.setOut(out);
+        
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).traceConnection().build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                assertNotNull(sc);
+
+                String stdout = bytes.toString();
+
+                assertTrue(stdout.contains("starting connection to streaming cluster"));
+                assertTrue(stdout.contains(clusterName));
+                assertTrue(stdout.contains("connection complete"));
+                assertTrue(stdout.contains("waiting for reader")); // from nats
+            }
+        } finally {
+            System.setOut(defaultOut);
+        }
+    }
+
+    @Test
+    public void testConnectWithoutTracing() throws Exception {
+        PrintStream defaultOut = System.out;
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(bytes);
+        System.setOut(out);
+        
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                assertNotNull(sc);
+
+                String stdout = bytes.toString();
+
+                assertFalse(stdout.contains("starting connection to streaming cluster"));
+                assertFalse(stdout.contains("connection complete"));
+                assertFalse(stdout.contains("waiting for reader")); // from nats
+            }
+        } finally {
+            System.setOut(defaultOut);
         }
     }
 

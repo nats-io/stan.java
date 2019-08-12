@@ -33,6 +33,7 @@ public class Options {
     private final int pingsMaxOut;
     private final String clientId;
     private final String clusterId;
+    private final boolean traceConnection;
 
 
     private Options(Builder builder) {
@@ -50,6 +51,7 @@ public class Options {
         this.lostHandler = builder.lostHandler;
         this.pingInterval = builder.pingInterval;
         this.pingsMaxOut = builder.pingsMaxOut;
+        this.traceConnection = builder.traceConnection;
     }
 
     /**
@@ -146,6 +148,13 @@ public class Options {
         return pingsMaxOut;
     }
 
+    /**
+     * @return should we trace the connection process to system.out, this will effect streaming and the nats connection
+     */
+    public boolean isTraceConnection() {
+        return traceConnection;
+    }
+
     public static final class Builder implements Serializable {
         private static final long serialVersionUID = 4774214916207501660L;
 
@@ -162,6 +171,7 @@ public class Options {
         private ConnectionLostHandler lostHandler;
         private Duration pingInterval;
         private int pingsMaxOut;
+        private boolean traceConnection;
 
         public Builder() {
             // set the defaults
@@ -194,6 +204,7 @@ public class Options {
             this.pingsMaxOut = template.pingsMaxOut;
             this.pingInterval = template.pingInterval;
             this.lostHandler = template.lostHandler;
+            this.traceConnection = template.traceConnection;
         }
 
         /**
@@ -445,6 +456,16 @@ public class Options {
          */
         int getMaxPubAcksInFlight() {
             return maxPubAcksInFlight;
+        }
+
+        /**
+         * Enable connection trace messages. Messages are printed to standard out. This options is for very fine
+         * grained debugging of connection issues. Effects streaming and Nats (if streaming creates the nats connection).
+         * @return the Builder for chaining
+         */
+        public Builder traceConnection() {
+            this.traceConnection = true;
+            return this;
         }
     }
 }
