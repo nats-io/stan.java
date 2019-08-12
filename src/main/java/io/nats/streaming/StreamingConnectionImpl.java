@@ -47,6 +47,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -398,16 +399,21 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     }
 
     // Publish will publish to the cluster and wait for an ACK.
+    // Prior to 2.2.0 this method did not block properly.
     @Override
     public void publish(String subject, byte[] data) throws IOException, InterruptedException, TimeoutException {
         final BlockingQueue<String> ch = createErrorChannel();
+        Duration ackTimeout = opts.getAckTimeout();
+
         publish(subject, data, null, ch);
-        String err;
-        if (!ch.isEmpty()) {
-            err = ch.take();
-            if (!err.isEmpty()) {
-                throw new IOException(err);
-            }
+
+        // Should get a timeout from the timer at ackTimeout, but fail no matter what
+        // don't leave a dangling "take" call that can lock the thread
+        String err = ch.poll(2 * ackTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (err == null) {
+            throw new TimeoutException(NatsStreaming.ERR_TIMEOUT);
+        } else if (!err.isEmpty()) {
+            throw new IOException(err);
         }
     }
 
@@ -425,7 +431,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             throws IOException, InterruptedException, TimeoutException {
         String subj;
         String ackSubject;
-        Duration ackTimeout;
+        Duration ackTimeout = opts.getAckTimeout();
         BlockingQueue<PubAck> pac;
         final AckClosure a= new AckClosure(ah, subject, (ah != null) ? data : null, ch);
         final PubMsg pe;
@@ -452,7 +458,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             pubAckMap.put(guid, a);
             // snapshot
             ackSubject = this.ackSubject;
-            ackTimeout = opts.getAckTimeout();
             pac = pubAckChan;
         } finally {
             this.unlock();
@@ -687,6 +692,12 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         }
         if (ackClosure.ah != null) {
             ackClosure.ah.onAck(guid, ackClosure.subject, ackClosure.data, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
+        } else if (ackClosure.ch != null) {
+            try {
+                ackClosure.ch.put(NatsStreaming.ERR_TIMEOUT);
+            } catch (InterruptedException e) {
+                // ignore
+            }
         }
     }
 

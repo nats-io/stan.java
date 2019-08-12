@@ -107,6 +107,37 @@ public class PublishTests {
     }
 
     @Test(expected=IOException.class)
+    public void testTimeoutPublishSync() throws Exception {
+        byte[] data = "Hello World!".getBytes();
+        String subject = "foo";
+
+        // Run a STAN server
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options opts = new Options.Builder().pubAckWait(Duration.ofMillis(200)).natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, opts)) {
+                assertNotNull(sc);
+
+                // Kill the NATS Streaming server so we timeout
+                srv.shutdown();
+
+                int tries = 10;
+                while (tries > 0 && sc.getNatsConnection().getStatus() == Status.CONNECTED) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception exp)
+                    {
+                        //ignore
+                    }
+                    tries--;
+                }
+
+                sc.publish(subject, data);
+                assertFalse(true);
+            } // will throw on close
+        }
+    }
+
+    @Test(expected=IOException.class)
     public void testTimeoutPublishAsyncWithData() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         final String[] guid = new String[1];
