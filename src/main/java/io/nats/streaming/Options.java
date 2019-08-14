@@ -191,7 +191,7 @@ public class Options {
         }
 
         /**
-         * Set the max pub acks the server/client will allow
+         * Set the max pub acks the server/client will allow. Default is 16384.
          * 
          * @param maxPubAcksInFlight the max acks
          * @return the builder for chaining
