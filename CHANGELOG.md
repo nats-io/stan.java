@@ -5,6 +5,10 @@
 * [Changed] - don't spin up message dispatcher unless needed, saving a few threads when custom dispatchers are used
 * [Changed] - Updated version of protobuf and nats.java libraries
 * [Deprecated] - ConnectionFactory property accessors are deprecated in favor of using an Options.Builder directly.
+* [Fixed] - #129 - sync publish wasn't sync
+* [Added] - #130 - support for ConnectionLostHandler, pings to server to identify dropped connections
+* [Added] - #132 - option for connect time tracing
+* [Added] - #132 - version of ack handler that gets message contents
 
 ## Version 2.1.6
 
