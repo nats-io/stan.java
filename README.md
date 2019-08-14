@@ -11,7 +11,7 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 [![Javadoc](http://javadoc.io/badge/io.nats/java-nats-streaming.svg)](http://javadoc.io/doc/io.nats/java-nats-streaming)
 
 ## A Note on Versions
- 
+
 This is version 2.2.0 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts. For 2.1.6 we are renaming this repo to stan.java.
 
 As of 2.1.6 the NATS server is undergoing a rename, as are the NATS repositories.
