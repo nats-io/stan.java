@@ -225,6 +225,8 @@ public class StanBench {
                         break;
                     }
                 }
+
+                sub.close();
             }
         }
     }

@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import io.nats.client.ConnectionListener;
+import io.nats.client.ErrorListener;
 import io.nats.client.ConnectionListener.Events;
 
 public class OptionsTests {
@@ -29,7 +31,7 @@ public class OptionsTests {
     private static final String clientName = "me";
 
     @Test
-    public void testBuilderFromTempalte() {
+    public void testBuilderFromTemplate() {
         Options opts = new Options.Builder().
                         maxPubAcksInFlight(10).
                         natsUrl("nats://superserver:4222").
@@ -76,9 +78,9 @@ public class OptionsTests {
     public void testErrorListenerViaFactory() throws Exception {
         TestHandler handler = new TestHandler();
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
-            StreamingConnectionFactory factory = new StreamingConnectionFactory(clusterName, clientName);
-            factory.setNatsUrl(srv.getURI());
-            factory.setErrorListener(handler);
+            Options o = new Options.Builder().clusterId(clusterName).clientId(clientName).
+                            natsUrl(srv.getURI()).errorListener(handler).build();
+            StreamingConnectionFactory factory = new StreamingConnectionFactory(o);
             try (StreamingConnection sc = factory.createConnection()) {
                 final CountDownLatch latch = new CountDownLatch(1);
                 assertNotNull(sc);
@@ -123,9 +125,9 @@ public class OptionsTests {
     public void testConnectionListenerViaFactory() throws Exception {
         TestHandler handler = new TestHandler();
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
-            StreamingConnectionFactory factory = new StreamingConnectionFactory(clusterName, clientName);
-            factory.setNatsUrl(srv.getURI());
-            factory.setConnectionListener(handler);
+            Options o = new Options.Builder().clusterId(clusterName).clientId(clientName).
+                            natsUrl(srv.getURI()).connectionListener(handler).build();
+            StreamingConnectionFactory factory = new StreamingConnectionFactory(o);
             try (StreamingConnection sc = factory.createConnection()) {
                 assertNotNull(sc);
                 assertEquals(handler.getEventCount(Events.CONNECTED), 1);
@@ -134,5 +136,68 @@ public class OptionsTests {
         }
 
         assertEquals(handler.getEventCount(Events.CLOSED), 1);
+    }
+
+    @Test
+    public void testOptions() throws Exception {
+        Options.Builder builder = new Options.Builder();
+        builder.pubAckWait(Duration.ofMillis(100));
+        builder.connectWait(Duration.ofMillis(500));
+        builder.discoverPrefix("_FOO");
+        builder.maxPubAcksInFlight(1000);
+
+        ErrorListener err = new TestHandler();
+        ConnectionListener conn = new TestHandler();
+
+        builder.errorListener(err);
+        builder.connectionListener(conn);
+        builder.natsUrl("nats://foobar:1234");
+
+        Options opts = builder.build();
+        assertEquals(100, opts.getAckTimeout().toMillis());
+        assertEquals(Duration.ofMillis(500), opts.getConnectTimeout());
+        assertEquals(500, opts.getConnectTimeout().toMillis());
+        assertEquals("_FOO", opts.getDiscoverPrefix());
+        assertEquals(1000, opts.getMaxPubAcksInFlight());
+        assertEquals("nats://foobar:1234", opts.getNatsUrl());
+        assertEquals(conn, opts.getConnectionListener());
+        assertEquals(err, opts.getErrorListener());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSetDiscoverPrefixNull() {
+        Options.Builder builder = new Options.Builder();
+        builder.discoverPrefix(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetInvalidMaxPubAcksInFlight() {
+        Options.Builder builder = new Options.Builder();
+        builder.maxPubAcksInFlight(-1); // should throw IllegalArgumentException
+    }
+
+    @Test
+    public void testDefaultNatsUrl() {
+        Options options = new Options.Builder().build();
+        assertNotNull(options.getNatsUrl());
+        assertEquals(NatsStreaming.DEFAULT_NATS_URL, options.getNatsUrl());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSetNatsUrlNull() {
+        Options.Builder builder = new Options.Builder();
+        builder.natsUrl(null); // Should throw
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSetClientIdNull() {
+        Options.Builder builder = new Options.Builder();
+        builder.clientId(null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSetClusterIdNull() {
+        Options.Builder builder = new Options.Builder();
+        builder.clusterId(null);
     }
 }

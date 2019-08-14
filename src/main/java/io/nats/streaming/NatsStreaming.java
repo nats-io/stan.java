@@ -14,13 +14,23 @@
 package io.nats.streaming;
 
 import java.io.IOException;
+import java.time.Duration;
 
 public final class NatsStreaming {
+
+    // Client send connID in ConnectRequest and PubMsg, and server
+    // listens and responds to client PINGs. The validity of the
+    // connection (based on connID) is checked on incoming PINGs.
+    static final int PROTOCOL_ONE = 1;
+
     static final String DEFAULT_NATS_URL = io.nats.client.Options.DEFAULT_URL;
     static final int DEFAULT_CONNECT_WAIT = 5; // Seconds
     static final String DEFAULT_DISCOVER_PREFIX = "_STAN.discover";
     static final String DEFAULT_ACK_PREFIX = "_STAN.acks";
     static final int DEFAULT_MAX_PUB_ACKS_IN_FLIGHT = 16384;
+    static final Duration DEFAULT_PING_INTERVAL = Duration.ofSeconds(5);
+    static final int DEFAULT_MAX_PINGS_OUT = 3;
+
     static final String PFX = "stan: ";
     static final String ERR_CONNECTION_REQ_TIMEOUT = PFX + "connect request timeout";
     static final String ERR_CLOSE_REQ_TIMEOUT = PFX + "close request timeout";
@@ -51,6 +61,7 @@ public final class NatsStreaming {
     static final String SERVER_ERR_INVALID_DURABLE_NAME =
             PFX + "durable name of a durable queue subscriber can't contain the character ':'";
     static final String SERVER_ERR_UNKNOWN_CLIENT = PFX + "unknown clientID";
+	static final String SERVER_ERR_MAX_PINGS =PFX + "connection lost due to PING failure";
 
     private NatsStreaming() {
     }

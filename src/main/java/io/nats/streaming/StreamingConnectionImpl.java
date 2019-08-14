@@ -31,6 +31,8 @@ import io.nats.streaming.protobuf.CloseResponse;
 import io.nats.streaming.protobuf.ConnectRequest;
 import io.nats.streaming.protobuf.ConnectResponse;
 import io.nats.streaming.protobuf.MsgProto;
+import io.nats.streaming.protobuf.Ping;
+import io.nats.streaming.protobuf.PingResponse;
 import io.nats.streaming.protobuf.PubAck;
 import io.nats.streaming.protobuf.PubMsg;
 import io.nats.streaming.protobuf.SubscriptionRequest;
@@ -38,6 +40,8 @@ import io.nats.streaming.protobuf.SubscriptionResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +49,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -58,6 +63,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     private String clientId;
     private String clusterId;
+    private String connectionId;
 
     String pubPrefix; // Publish prefix set by streaming, append our subject.
     String subRequests; // Subject to send subscription requests.
@@ -68,6 +74,14 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     String ackSubject; // publish acks
     String hbSubject;
 
+    String pingInbox;
+    Duration pingInterval;
+    int pingMaxOut;
+    byte[] pingBytes;
+    String pingRequests;
+    int pingsOut;
+    Timer pingTimer;
+
     Map<String, Subscription> subMap;
     Map<String, AckClosure> pubAckMap;
     private BlockingQueue<PubAck> pubAckChan;
@@ -75,8 +89,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     io.nats.client.Connection nc;
     io.nats.client.Dispatcher ackDispatcher;
     io.nats.client.Dispatcher messageDispatcher;
-    io.nats.client.Dispatcher heartbeatDispatcher;
     Map<String, io.nats.client.Dispatcher> customDispatchers;
+    io.nats.client.Dispatcher dispatcher; // used for internal messaging, heartbeats and pings
+
+    io.nats.client.Subscription pingSub;
+    io.nats.client.Subscription hbSub;
 
     io.nats.client.NUID nuid;
 
@@ -84,30 +101,44 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     boolean ncOwned = false;
 
-    StreamingConnectionImpl(String stanClusterId, String clientId) {
-        this(stanClusterId, clientId, null);
+    StreamingConnectionImpl(String clusterId, String clientId, Options opts) {
+        this.clusterId = clusterId;
+        this.clientId = clientId;
+        this.nuid = new NUID();
+        this.opts = opts;
+        this.connectionId = this.nuid.next();
+
+        if (opts == null) { 
+            opts = new Options.Builder().build();
+        }
+        
+        // Check if the user has provided a connection as an option
+        if (this.opts.getNatsConn() != null) {
+            setNatsConnection(this.opts.getNatsConn());
+        }
     }
 
-    StreamingConnectionImpl(String stanClusterId, String clientId, Options opts) {
-        this.clusterId = stanClusterId;
-        this.clientId = clientId;
+    StreamingConnectionImpl(Options opts) {
+        this(opts.getClusterId(), opts.getClientId(), opts);
+    }
 
-        this.nuid = new NUID();
+    void timeTrace(boolean trace, String format, Object... args) {
+        if (trace) {
+            String timeStr = DateTimeFormatter.ISO_TIME.format(LocalDateTime.now());
+            System.out.printf("[%s] connect trace: ", timeStr);
+            System.out.printf(format, args);
+            System.out.println();
 
-        if (opts == null) {
-            this.opts = new Options.Builder().build();
-        } else {
-            this.opts = opts;
-            // Check if the user has provided a connection as an option
-            if (this.opts.getNatsConn() != null) {
-                setNatsConnection(this.opts.getNatsConn());
-            }
         }
     }
 
     // Connect will form a connection to the STAN subsystem.
     StreamingConnectionImpl connect() throws IOException, InterruptedException {
         boolean exThrown = false;
+        boolean trace = opts.isTraceConnection();
+
+        timeTrace(trace, "starting connection to streaming cluster %s as %s", this.clusterId, this.clientId);
+
         io.nats.client.Connection nc = getNatsConnection();
         // Create a NATS connection if it doesn't exist
         if (nc == null) {
@@ -117,37 +148,58 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         } else if (nc.getStatus() != Connection.Status.CONNECTED) {
             // Bail if the custom NATS connection is disconnected
             throw new IOException(NatsStreaming.ERR_BAD_CONNECTION);
+        } else {
+            timeTrace(trace, "skipped NATS connection, using existing one");
         }
 
         try {
+            timeTrace(trace, "creating inboxes");
             this.hbSubject = this.newInbox();
+            this.pingInbox = this.newInbox();
             this.ackSubject = String.format("%s.%s", NatsStreaming.DEFAULT_ACK_PREFIX, this.nuid.next());
 
+            timeTrace(trace, "creating ack dispatcher");
             this.ackDispatcher = nc.createDispatcher(msg -> {
                 this.processAck(msg);
             });
+            this.ackDispatcher.subscribe(this.ackSubject);
 
-            this.heartbeatDispatcher = nc.createDispatcher(msg -> {
+            timeTrace(trace, "creating hb/ping dispatcher and subscribing");
+            this.dispatcher = nc.createDispatcher(msg -> {});
+            this.hbSub = this.dispatcher.subscribe(this.hbSubject, msg -> {
                 this.processHeartBeat(msg);
             });
 
-            this.messageDispatcher = nc.createDispatcher(msg -> {
-                this.processMsg(msg);
+            this.pingSub = this.dispatcher.subscribe(this.pingInbox, msg -> {
+                this.processPing(msg);
             });
 
-            this.heartbeatDispatcher.subscribe(this.hbSubject);
-            this.ackDispatcher.subscribe(this.ackSubject);
-
-            this.heartbeatDispatcher.setPendingLimits(-1, -1);
+            timeTrace(trace, "setting pending limits on dispatchers");
+            this.dispatcher.setPendingLimits(-1, -1);
             this.ackDispatcher.setPendingLimits(-1, -1);
-            this.messageDispatcher.setPendingLimits(-1, -1);
 
             this.customDispatchers = new HashMap<>();
 
             // Send Request to discover the cluster
             String discoverSubject = String.format("%s.%s", opts.getDiscoverPrefix(), clusterId);
-            ConnectRequest req = ConnectRequest.newBuilder().setClientID(clientId)
-                    .setHeartbeatInbox(this.hbSubject).build();
+
+            // For tests we set to negative for millis
+            // otherwise convert to seconds
+            long pingInterval = opts.getPingInterval().toMillis();
+            if (pingInterval < 1000) {
+                pingInterval = -pingInterval;
+            } else {
+                pingInterval = pingInterval/1000;
+            }
+
+            timeTrace(trace, "sending connection request");
+            ConnectRequest req = ConnectRequest.newBuilder()
+                    .setClientID(clientId)
+                    .setConnID(ByteString.copyFromUtf8(this.connectionId))
+                    .setHeartbeatInbox(this.hbSubject)
+                    .setProtocol(NatsStreaming.PROTOCOL_ONE)
+                    .setPingInterval((int)pingInterval)
+                    .setPingMaxOut(opts.getMaxPingsOut()).build();
 
             byte[] bytes = req.toByteArray();
             Message reply = nc.request(discoverSubject, bytes, opts.getConnectTimeout());
@@ -155,6 +207,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             if (reply == null) {
                 throw new IOException(ERR_CONNECTION_REQ_TIMEOUT);
             }
+            
+            timeTrace(trace, "received connection request");
             ConnectResponse cr = ConnectResponse.parseFrom(reply.getData());
             if (!cr.getError().isEmpty()) {
                 // This is already a properly formatted streaming error message
@@ -169,6 +223,58 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             unsubRequests = cr.getUnsubRequests();
             subCloseRequests = cr.getSubCloseRequests();
             closeRequests = cr.getCloseRequests();
+
+            boolean unsubPings = true;
+
+            if (cr.getProtocol() >= NatsStreaming.PROTOCOL_ONE) {
+                timeTrace(trace, "setting up server ping");
+
+                // Note that in the future server may override client ping
+                // interval value sent in ConnectRequest, so use the
+                // value in ConnectResponse to decide if we send PINGs
+                // and at what interval.
+                // In tests, the interval could be negative to indicate
+                // milliseconds.
+                if (cr.getPingInterval() != 0) {
+                    unsubPings = false;
+
+                    // These will be immutable.
+                    this.pingRequests = cr.getPingRequests();
+
+                    // In test, it is possible that we get a negative value
+                    // to represent milliseconds.
+                    if (cr.getPingInterval() < 0) {
+                        this.pingInterval = Duration.ofMillis(-cr.getPingInterval());
+                    } else {
+                        // PingInterval is otherwise assumed to be in seconds.
+                        this.pingInterval = Duration.ofSeconds(cr.getPingInterval());
+                    }
+
+                    this.pingMaxOut = cr.getPingMaxOut();
+                    this.pingBytes = Ping.newBuilder().setConnID(ByteString.copyFromUtf8(this.connectionId)).build().toByteArray();
+                    
+                    // Set the timer now that we are set. Use lock to create
+                    // synchronization point.
+                    this.pingTimer = new Timer("jnats streaming ping timer", true);
+                    this.pingTimer.schedule(new TimerTask() {
+                        public void run() {
+                            try {
+                                pingServer();
+                            } catch (Exception e) {
+                                // catch exception to prevent the timer to be closed, but cancel this task
+                                cancel();
+                                // TODO:  Ignore, but re-evaluate this
+                            }
+                        }
+                    }, this.pingInterval.toMillis(), this.pingInterval.toMillis());
+                }
+            }
+            
+            if (unsubPings) {
+                timeTrace(trace, "removing ping subscriber, not supported by server");
+                this.dispatcher.unsubscribe(pingSub);
+                this.pingSub = null;
+            }
 
             // Setup the ACK subscription
             pubAckMap = new HashMap<>();
@@ -187,6 +293,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                 } catch (Exception e) {
                     /* NOOP -- can't do anything if close fails */
                 }
+            } else {
+                timeTrace(trace, "connection complete");
             }
         }
         return this;
@@ -196,13 +304,16 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         io.nats.client.Connection nc = null;
         if (getNatsConnection() == null) {
             if (opts.getNatsUrl() != null) {
-                io.nats.client.Options natsOpts = new io.nats.client.Options.Builder().
+                io.nats.client.Options.Builder natsOpts = new io.nats.client.Options.Builder().
                                                     connectionName(clientId).
                                                     errorListener(opts.getErrorListener()).
                                                     connectionListener(opts.getConnectionListener()).
-                                                    server(opts.getNatsUrl()).
-                                                    build();
-                nc = Nats.connect(natsOpts);
+                                                    server(opts.getNatsUrl());
+                if (opts.isTraceConnection()) {
+                    natsOpts.traceConnection();
+                }
+                
+                nc = Nats.connect(natsOpts.build());
             } else {
                 nc = Nats.connect();
             }
@@ -213,6 +324,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
 
     @Override
     public void close() throws IOException, InterruptedException {
+        this.close(false);
+    }
+
+    // If silent is true we don't try to notify the server
+    void close(boolean silent) throws IOException, InterruptedException {
         io.nats.client.Connection nc;
         this.lock();
         try {
@@ -229,6 +345,10 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             try {
                 // Signals we are closed.
                 setNatsConnection(null);
+
+                if (pingTimer != null) {
+                    pingTimer.cancel();
+                }
 
                 for (AckClosure ac : this.pubAckMap.values()) {
                     ac.ackTask.cancel();
@@ -253,22 +373,24 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     nc.closeDispatcher(this.ackDispatcher);
                 }
 
-                if (this.heartbeatDispatcher != null && this.heartbeatDispatcher.isActive()) {
-                    nc.closeDispatcher(this.heartbeatDispatcher);
+                if (this.dispatcher != null && this.dispatcher.isActive()) {
+                    nc.closeDispatcher(this.dispatcher);
                 }
 
-                CloseRequest req = CloseRequest.newBuilder().setClientID(clientId).build();
-                byte[] bytes = req.toByteArray();
-                Message reply = nc.request(closeRequests, bytes, opts.getConnectTimeout());
+                if (!silent) {
+                    CloseRequest req = CloseRequest.newBuilder().setClientID(clientId).build();
+                    byte[] bytes = req.toByteArray();
+                    Message reply = nc.request(closeRequests, bytes, opts.getConnectTimeout());
 
-                if (reply == null) {
-                    throw new IOException(NatsStreaming.ERR_CLOSE_REQ_TIMEOUT);
-                }
-                if (reply.getData() != null) {
-                    CloseResponse cr = CloseResponse.parseFrom(reply.getData());
+                    if (reply == null) {
+                        throw new IOException(NatsStreaming.ERR_CLOSE_REQ_TIMEOUT);
+                    }
+                    if (reply.getData() != null) {
+                        CloseResponse cr = CloseResponse.parseFrom(reply.getData());
 
-                    if (!cr.getError().isEmpty()) {
-                        throw new IOException(cr.getError());
+                        if (!cr.getError().isEmpty()) {
+                            throw new IOException(cr.getError());
+                        }
                     }
                 }
             } finally {
@@ -283,10 +405,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         } finally {
             this.unlock();
         }
-    }
-
-    AckClosure createAckClosure(AckHandler ah, BlockingQueue<String> ch) {
-        return new AckClosure(ah, ch);
     }
 
     private SubscriptionImpl createSubscription(String subject, String qgroup,
@@ -312,21 +430,26 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     }
 
     // Publish will publish to the cluster and wait for an ACK.
+    // Prior to 2.2.0 this method did not block properly.
     @Override
     public void publish(String subject, byte[] data) throws IOException, InterruptedException, TimeoutException {
         final BlockingQueue<String> ch = createErrorChannel();
+        Duration ackTimeout = opts.getAckTimeout();
+
         publish(subject, data, null, ch);
-        String err;
-        if (!ch.isEmpty()) {
-            err = ch.take();
-            if (!err.isEmpty()) {
-                throw new IOException(err);
-            }
+
+        // Should get a timeout from the timer at ackTimeout, but fail no matter what
+        // don't leave a dangling "take" call that can lock the thread
+        String err = ch.poll(2 * ackTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        if (err == null) {
+            throw new TimeoutException(NatsStreaming.ERR_TIMEOUT);
+        } else if (!err.isEmpty()) {
+            throw new IOException(err);
         }
     }
 
     /*
-     * PublishAsync will publish to the cluster on pubPrefix+subject and asynchronously process the
+     * Publish with an ack handler will publish to the cluster on pubPrefix+subject and asynchronously process the
      * ACK or error state. It will return the GUID for the message being sent.
      */
     @Override
@@ -339,14 +462,13 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             throws IOException, InterruptedException, TimeoutException {
         String subj;
         String ackSubject;
-        Duration ackTimeout;
+        Duration ackTimeout = opts.getAckTimeout();
         BlockingQueue<PubAck> pac;
-        final AckClosure a;
+        final AckClosure a= new AckClosure(ah, subject, (ah != null) ? data : null, ch);
         final PubMsg pe;
         String guid;
         byte[] bytes;
 
-        a = createAckClosure(ah, ch);
         this.lock();
         try {
             if (getNatsConnection() == null) {
@@ -367,7 +489,6 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             pubAckMap.put(guid, a);
             // snapshot
             ackSubject = this.ackSubject;
-            ackTimeout = opts.getAckTimeout();
             pac = pubAckChan;
         } finally {
             this.unlock();
@@ -399,6 +520,13 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         this.lock();
         try {
             if (name == null || name.isEmpty()) {
+                if (this.messageDispatcher == null) {
+                    this.messageDispatcher = nc.createDispatcher(msg -> {
+                        this.processMsg(msg);
+                    });
+                    this.messageDispatcher.setPendingLimits(-1, -1);
+                }
+
                 return this.messageDispatcher;
             }
 
@@ -560,7 +688,11 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     ex = new IOException(ackError);
                 }
                 // Perform the ackHandler callback
-                ackClosure.ah.onAck(pa.getGuid(), ex);
+                ackClosure.ah.onAck(pa.getGuid(), ackClosure.subject, ackClosure.data, ex);
+
+                // clean up to allow GC of data
+                ackClosure.subject = null;
+                ackClosure.data = null;
             } else if (ackClosure.ch != null) {
                 try {
                     ackClosure.ch.put(ackError);
@@ -590,7 +722,13 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
             return;
         }
         if (ackClosure.ah != null) {
-            ackClosure.ah.onAck(guid, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
+            ackClosure.ah.onAck(guid, ackClosure.subject, ackClosure.data, new TimeoutException(NatsStreaming.ERR_TIMEOUT));
+        } else if (ackClosure.ch != null) {
+            try {
+                ackClosure.ch.put(NatsStreaming.ERR_TIMEOUT);
+            } catch (InterruptedException e) {
+                // ignore
+            }
         }
     }
 
@@ -626,6 +764,108 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         }
 
         return ackClosure;
+    }
+
+    /**
+     * Closes a connection and invoke the connection error callback if one
+     * was registered when the connection was created.
+     */
+    void closeDueToPing(String error) {
+        boolean isClosed = false;
+        ConnectionLostHandler lost = null;
+        Exception ex = null;
+
+        lock();
+        try {
+            isClosed = (getNatsConnection() == null);
+            lost = opts.getConnectionLostHandler();
+        } finally {
+            unlock();
+        }
+
+        // Check if connection has been closed.
+        if (isClosed) {
+            return;
+        }
+
+        try {
+            close(true);
+        } catch (Exception exp) {
+            ex = exp;
+        }
+
+        if (lost != null) {
+            if (ex == null) {
+                ex = new Exception(error);
+            } else {
+                ex = new Exception(error, ex);
+            }
+            lost.connectionLost(this, ex);
+        }
+    }
+
+    /** 
+     * Sends a PING (containing the connection's ID) to the server at intervals
+     * specified by PingInterval option when connection is created.
+     * Everytime a PING is sent, the number of outstanding PINGs is increased.
+     * If the total number is > than the PingMaxOut option, then the connection
+     * is closed, and connection error callback invoked if one was specified.
+     */
+    void pingServer() {
+        this.lock();
+        try {
+            this.pingsOut++;
+            if (this.pingsOut > this.pingMaxOut) {
+                this.unlock();
+                this.closeDueToPing(NatsStreaming.SERVER_ERR_MAX_PINGS);
+                return;
+            }
+            Connection conn = this.nc;
+            this.unlock();
+
+            // Send the PING now. If the NATS connection is reported closed,
+            // we are done.
+            try {
+                conn.publish(this.pingRequests, this.pingInbox, this.pingBytes);
+            } catch (Exception exp) {
+                if (conn.getStatus() == io.nats.client.Connection.Status.CLOSED) {
+                    this.closeDueToPing(exp.getMessage());
+                }
+            }
+        } catch (Exception exp) {
+            this.unlock();
+            throw exp;
+        }
+    }
+
+    /**
+     * Receives PING responses from the server.
+     * If the response contains an error message, the connection is closed
+     * and the connection error callback is invoked (if one is specified).
+     * If no error, the number of ping out is reset to 0. There is no
+     * decrement by one since for a given PING, the client may received
+     * many responses when servers are running in channel partitioning mode.
+     * Regardless, any positive response from the server ought to signal
+     * that the connection is ok.
+     */
+    void processPing(Message msg) {
+        // No data means OK (we don't have to call Unmarshal)
+        if (msg.getData() != null && msg.getData().length > 0) {
+            try {
+                PingResponse pingResp = PingResponse.parseFrom(msg.getData());
+                String error = pingResp.getError();
+                if (error != null && !error.isEmpty()) {
+                    closeDueToPing(error);
+                    return;
+                }
+            } catch (Exception e) {
+                return; // exception here stops us from reseting pings out
+            }
+        }
+        // Do not attempt to decrement, simply reset to 0.
+        this.lock();
+        this.pingsOut = 0;
+        this.unlock();
     }
 
     @Override
@@ -747,11 +987,15 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
     class AckClosure {
         TimerTask ackTask;
         AckHandler ah;
+        String subject;
+        byte[] data;
         BlockingQueue<String> ch;
 
-        AckClosure(final AckHandler ah, final BlockingQueue<String> ch) {
+        AckClosure(final AckHandler ah, final String subject, final byte[] data, final BlockingQueue<String> ch) {
             this.ah = ah;
             this.ch = ch;
+            this.subject = subject;
+            this.data = data;
         }
     }
 }

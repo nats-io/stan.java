@@ -144,7 +144,7 @@ public class PubSubTests {
             Options options = new Options.Builder().natsUrl(srv.getURI()).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
                 assertTrue(sc.getNatsConnection().getStatus() == Status.CONNECTED);
-                assertTrue(((StreamingConnectionImpl)sc).messageDispatcher.isActive());
+                assertTrue(((StreamingConnectionImpl)sc).ackDispatcher.isActive());
 
                 final int toSend = 100;
                 byte[] hw = "Hello World".getBytes();

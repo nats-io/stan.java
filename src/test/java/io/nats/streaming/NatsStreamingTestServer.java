@@ -29,7 +29,7 @@ class NatsStreamingTestServer implements AutoCloseable {
     private static final String STAN_SERVER = "nats-streaming-server";
 
     // Use a new port each time, we increment and get so start at the normal port
-    private static AtomicInteger portCounter = new AtomicInteger(io.nats.client.Options.DEFAULT_PORT + 1);
+    private static AtomicInteger portCounter = new AtomicInteger(14333);
 
     private int port;
     private boolean debug;
