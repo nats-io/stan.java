@@ -6,7 +6,7 @@ plugins {
     id 'maven'
     id 'signing'
     id 'com.github.kt3k.coveralls' version '2.6.3'
-    id 'com.google.protobuf' version '0.8.6'
+    id 'com.google.protobuf' version '0.8.10'
     id "io.codearte.nexus-staging" version "0.11.0"
     id 'osgi'
 }
@@ -42,6 +42,10 @@ if (System.getenv('SONATYPE_USERNAME') != null) {
     project.ext['signing.secretKeyRingFile'] = System.getenv('GPG_KEYRING_FILE')
     project.ext['signing.keyId'] = System.getenv('GPG_KEY_ID')
     project.ext['signing.password'] =  System.getenv('GPG_KEY_PASSPHRASE')
+}
+
+tasks.withType(Sign) {
+    onlyIf { "master".equals(branch) }
 }
 
 repositories {

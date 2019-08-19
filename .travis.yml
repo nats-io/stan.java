@@ -7,6 +7,7 @@ jdk:
 - openjdk8
 - openjdk9
 - openjdk10
+- openjdk11
 before_script:
 - wget "https://github.com/nats-io/nats-streaming-server/releases/download/$stan_version/nats-streaming-server-$stan_version-linux-amd64.zip"
   -O tmp.zip

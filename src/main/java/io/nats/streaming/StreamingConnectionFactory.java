@@ -98,6 +98,7 @@ public class StreamingConnectionFactory {
      * @deprecated use options directly
      * @return the pubAckWait
      */
+    @Deprecated
     public Duration getAckTimeout() {
         return this.options.getAckTimeout();
     }
@@ -108,6 +109,7 @@ public class StreamingConnectionFactory {
      * @param ackTimeout the pubAckWait to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setAckTimeout(Duration ackTimeout) {
         this.options.pubAckWait(ackTimeout);
     }
@@ -119,6 +121,7 @@ public class StreamingConnectionFactory {
      * @param unit       the time unit to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setAckTimeout(long ackTimeout, TimeUnit unit) {
         this.options.pubAckWait(Duration.ofMillis(unit.toMillis(ackTimeout)));
     }
@@ -129,6 +132,7 @@ public class StreamingConnectionFactory {
      * @return the connectWait
      * @deprecated use options directly
      */
+    @Deprecated
     public Duration getConnectTimeout() {
         return this.options.getConnectTimeout();
     }
@@ -139,6 +143,7 @@ public class StreamingConnectionFactory {
      * @param connectTimeout the connectWait to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setConnectTimeout(Duration connectTimeout) {
         this.options.connectWait(connectTimeout);
     }
@@ -150,6 +155,7 @@ public class StreamingConnectionFactory {
      * @param unit           the time unit to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setConnectTimeout(long connectTimeout, TimeUnit unit) {
         this.options.connectWait(Duration.ofMillis(unit.toMillis(connectTimeout)));
     }
@@ -161,6 +167,7 @@ public class StreamingConnectionFactory {
      * @return the discoverPrefix
      * @deprecated use options directly
      */
+    @Deprecated
     public String getDiscoverPrefix() {
         return this.options.getDiscoverPrefix();
     }
@@ -171,6 +178,7 @@ public class StreamingConnectionFactory {
      * @param discoverPrefix the discoverPrefix to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setDiscoverPrefix(String discoverPrefix) {
         this.options.discoverPrefix(discoverPrefix);
     }
@@ -181,6 +189,7 @@ public class StreamingConnectionFactory {
      * @return the maxPubAcksInFlight
      * @deprecated use options directly
      */
+    @Deprecated
     public int getMaxPubAcksInFlight() {
         return this.options.getMaxPubAcksInFlight();
     }
@@ -191,6 +200,7 @@ public class StreamingConnectionFactory {
      * @param maxPubAcksInFlight the maxPubAcksInFlight to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setMaxPubAcksInFlight(int maxPubAcksInFlight) {
         this.options.maxPubAcksInFlight(maxPubAcksInFlight);
     }
@@ -201,6 +211,7 @@ public class StreamingConnectionFactory {
      * @return the NATS connection URL
      * @deprecated use options directly
      */
+    @Deprecated
     public String getNatsUrl() {
         return this.options.getNatsUrl();
     }
@@ -211,6 +222,7 @@ public class StreamingConnectionFactory {
      * @param natsUrl the natsUrl to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setNatsUrl(String natsUrl) {
         this.options.natsUrl(natsUrl);
     }
@@ -221,6 +233,7 @@ public class StreamingConnectionFactory {
      * @return the NATS StreamingConnection
      * @deprecated use options directly
      */
+    @Deprecated
     public io.nats.client.Connection getNatsConnection() {
         return this.options.getNatsConn();
     }
@@ -231,6 +244,7 @@ public class StreamingConnectionFactory {
      * @param natsConn the NATS connection to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setNatsConnection(io.nats.client.Connection natsConn) {
         this.options.natsConn(natsConn);
     }
@@ -242,6 +256,7 @@ public class StreamingConnectionFactory {
      * @return the client ID of the current NATS streaming session
      * @deprecated use options directly
      */
+    @Deprecated
     public String getClientId() {
         return this.options.getClientId();
     }
@@ -252,6 +267,7 @@ public class StreamingConnectionFactory {
      * @param clientId the clientId to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setClientId(String clientId) {
         this.options.clientId(clientId);
     }
@@ -262,6 +278,7 @@ public class StreamingConnectionFactory {
      * @return the clusterId
      * @deprecated use options directly
      */
+    @Deprecated
     public String getClusterId() {
         return this.options.getClusterID();
     }
@@ -272,6 +289,7 @@ public class StreamingConnectionFactory {
      * @param clusterId the clusterId to set
      * @deprecated use options directly
      */
+    @Deprecated
     public void setClusterId(String clusterId) {
         this.options.clusterId(clusterId);
     }
@@ -280,6 +298,7 @@ public class StreamingConnectionFactory {
      * @return the connection listener configured for this factory
      * @deprecated use options directly
      */
+    @Deprecated
     public ConnectionListener getConnectionListener() {
         return this.options.getConnectionListener();
     }
@@ -289,6 +308,7 @@ public class StreamingConnectionFactory {
      * @param l The new connection listener
      * @deprecated use options directly
      */
+    @Deprecated
     public void setConnectionListener(ConnectionListener l) {
         this.options.connectionListener(l);
     }
@@ -297,6 +317,7 @@ public class StreamingConnectionFactory {
      * @return the error listener associated with this factory
      * @deprecated use options directly
      */
+    @Deprecated
     public ErrorListener getErrorListener() {
         return this.options.getErrorListener();
     }
@@ -307,6 +328,7 @@ public class StreamingConnectionFactory {
      * @param l The new error listener
      * @deprecated use options directly
      */
+    @Deprecated
     public void setErrorListener(ErrorListener l) {
         this.options.errorListener(l);
     }
