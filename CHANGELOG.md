@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 2.2.1
+
+* [Changed] - small fixes for building the library, including adding java 11 to travis
+
 ## Version 2.2.0
 
 * [Changed] - don't spin up message dispatcher unless needed, saving a few threads when custom dispatchers are used
