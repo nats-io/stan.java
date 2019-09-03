@@ -225,6 +225,8 @@ publishing {
             pom {
                 name = 'jstan'
                 packaging = 'jar'
+                groupId = group
+                artifactId = archivesBaseName
                 description = 'Client library for working with the NATS streaming system.'
                 url = 'https://github.com/nats-io/stan.java'
                 licenses {
