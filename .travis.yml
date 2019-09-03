@@ -40,7 +40,7 @@ after_success:
 
   env:
     global:
-    - stan_version=v0.15.1
+    - stan_version=v0.16.0
     - stan_path=$TRAVIS_BUILD_DIR/stan/nats-streaming-server
     - GPG_KEYRING_FILE=.travis/nats.travis.gpg
     - secure: T/D5pMoZiDU6O3gU70D/qUJIvggI412y4nCw7WhC4JKDFMNIAa2enPfCrm9Np8sjuT2CF8hW4+SR7Adv5yZnMVIkCos1vmWjuz/yH/3+TRVANMr4fzUS3KsBCfl421qRxbtBt8frlOSdOpAYsqBscel9Jsvx22UVNV8qspXkYhjnQmX8mpgXj8yz1l6Y82htda/hB4dozgPcTMoLpT21yPwHlU8NdiTs1Bsj1JL7vz/PEzuNNylYLWoa2J6mvn1i3B/FjtgZwCeYydvel36QrFRoiK+Blo0iz1vOKnt3vAAQ6z5fkRGNjqxxiYzEGOP34uRvoSmJv6cHpqVV6gwQJJ+ntVZqrkjtdUqyffWE0wp0Pzf9c0fPaqBt/BtXdL0051+fgVpX8apkEM6amcF12S41i/XmhtLK452fsidfOEsdAV7OCVEJeahQPy5zX6CCUM/VqZoWaVmjC6TEW+Ai84tO3QkPLV1BChN46LBY+qapLMpPsmWyn0+pvmBtqiHCfDjhSuDQVwWsPKM83ealpFEtqmfOgKDc+FIAtLWcW8k7RUImQz3Qe325PQ/0r+voiuV7GQTI+68GkX5IyMwa8nXVOVxROy67IatIzYC6BQsoLb9YDCHuQq6j3AVe3np0OQ4MT8daCQZoL4sTh3lKR85u0gPLHhv9ybzAqAWvUrs=
