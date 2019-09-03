@@ -7,20 +7,24 @@ plugins {
     id 'signing'
     id 'com.github.kt3k.coveralls' version '2.6.3'
     id 'com.google.protobuf' version '0.8.10'
-    id "io.codearte.nexus-staging" version "0.11.0"
     id 'osgi'
+    id 'maven-publish'
+    id 'io.codearte.nexus-staging' version '0.21.0'
+    id "de.marcphilipp.nexus-publish" version "0.3.0"
 }
 
 // Update version here, repeated check-ins not into master will have snapshot on them
 def versionMajor = 2
 def versionMinor = 2
-def versionPatch = 1
+def versionPatch = 2
 def versionModifier = ""
-def jarVersion = "2.2.1"
+def jarVersion = "2.2.2"
 def branch = System.getenv("TRAVIS_BRANCH");
+def tag = System.getenv("TRAVIS_TAG");
+def useSigning = "master".equals(branch) || (!"".equals(tag) && tag.equals(branch)) // tag will be the branch on a tag event for travis
 
 def getVersionName = { ->
-    if ("true".equals(System.getenv("TRAVIS_PULL_REQUEST")) || !"master".equals(branch))  {
+    if ("".equals(tag))  {
         versionModifier = "-SNAPSHOT"
     }
 
@@ -44,8 +48,19 @@ if (System.getenv('SONATYPE_USERNAME') != null) {
     project.ext['signing.password'] =  System.getenv('GPG_KEY_PASSPHRASE')
 }
 
-tasks.withType(Sign) {
-    onlyIf { "master".equals(branch) }
+// If these aren't set, just set them to empty so we don't have issues getting them
+if (!project.hasProperty('ossrhUsername')) {
+    project.ext['ossrhUsername'] = ""
+    project.ext['ossrhPassword'] = ""
+}
+
+tasks {
+    closeRepository {
+        onlyIf { nexusPublishing.useStaging.get() }
+    }
+    releaseRepository{
+        onlyIf { nexusPublishing.useStaging.get() }
+    }
 }
 
 repositories {
@@ -60,7 +75,7 @@ dependencies {
 
     testImplementation 'junit:junit:4.12'
 
-    implementation 'io.nats:jnats:[2.6.0,)'
+    implementation 'io.nats:jnats:2.6.5'
 }
 
 sourceSets {
@@ -188,33 +203,30 @@ artifacts {
     archives javadocJar, sourcesJar, examplesJar
 }
 
-signing {
-    sign configurations.archives
+if (useSigning) {
+    signing {
+        sign configurations.archives
+    }
 }
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: "file://$buildDir/repos")
-            if (project.hasProperty("local_archives") || ("true".equals(System.getenv("TRAVIS_PULL_REQUEST")))) {
-                repository(url: "file://$buildDir/repos")
-            } else if (project.hasProperty('ossrhUsername') && project.hasProperty('ossrhPassword')) {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+nexusStaging {
+    packageGroup = group
+    username = project.getProperty('ossrhUsername')
+    password = project.getProperty('ossrhPassword')
+}
 
-                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                    authentication(userName: project.getProperty('ossrhUsername'), password: project.getProperty('ossrhPassword'))
-                }
-
-                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                    authentication(userName: project.getProperty('ossrhUsername'), password: project.getProperty('ossrhPassword'))
-                }
-            }
-
-            pom.project {
-                name 'jnats'
-                packaging 'jar'
-                description 'Client library for working with the NATS streaming system.'
-                url 'https://github.com/nats-io/stan.java'
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact examplesJar
+            artifact javadocJar
+            pom {
+                name = 'jstan'
+                packaging = 'jar'
+                description = 'Client library for working with the NATS streaming system.'
+                url = 'https://github.com/nats-io/stan.java'
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
@@ -223,16 +235,63 @@ uploadArchives {
                 }
                 developers {
                     developer {
-                        id="synadia"
-                        name "Synadia"
-                        email "info@synadia.com"
-                        url "https://nats.io"
+                        id = "synadia"
+                        name = "Synadia"
+                        email = "info@synadia.com"
+                        url = "https://nats.io"
                     }
                 }
                 scm {
-                    url = 'https://github.com/nats-io/jstan.java'
+                    url = 'https://github.com/nats-io/stan.java'
                 }
             }
+
+            pom.withXml {
+                def pomFile = file("${project.buildDir}/generated-pom.xml")
+                writeTo(pomFile)
+
+                if (useSigning) {
+                    def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                    artifact(pomAscFile) {
+                        classifier = null
+                        extension = 'pom.asc'
+                    }
+                }
+            }
+
+            // create the signed artifacts
+            if (useSigning) {
+                project.tasks.signArchives.signatureFiles.each {
+                    artifact(it) {
+                        def matcher = it.file =~ /-(sources|javadoc|examples)\.jar\.asc$/
+                        if (matcher.find()) {
+                            classifier = matcher.group(1)
+                        } else {
+                            classifier = null
+                        }
+                        extension = 'jar.asc'
+                    }
+                }
+            }
+        }
+    }
+
+    nexusPublishing {
+        repositories {
+            sonatype {
+                username = project.getProperty('ossrhUsername')
+                password = project.getProperty('ossrhPassword')
+            }
+        }
+    }
+
+    model {
+        tasks.generatePomFileForMavenJavaPublication {
+            destination = file("$buildDir/generated-pom.xml")
+        }
+        
+        tasks.publishMavenJavaPublicationToSonatypeRepository {
+            dependsOn project.tasks.signArchives
         }
     }
 }

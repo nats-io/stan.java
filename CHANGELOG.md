@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 2.2.2
+
+* [Changed] - small fixes to automate the build
+
 ## Version 2.2.1
 
 * [Changed] - small fixes for building the library, including adding java 11 to travis

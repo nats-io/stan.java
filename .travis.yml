@@ -2,12 +2,12 @@ dist: trusty
 language: java
 sudo: required
 jdk:
-- oraclejdk8
-- oraclejdk9
 - openjdk8
 - openjdk9
 - openjdk10
 - openjdk11
+- oraclejdk8
+- oraclejdk9
 before_script:
 - wget "https://github.com/nats-io/nats-streaming-server/releases/download/$stan_version/nats-streaming-server-$stan_version-linux-amd64.zip"
   -O tmp.zip
@@ -17,7 +17,7 @@ before_install:
 - openssl aes-256-cbc -K $encrypted_4d67c1484586_key -iv $encrypted_4d67c1484586_iv
   -in .travis/nats.travis.gpg.enc -out .travis/nats.travis.gpg -d
 install:
-- "./gradlew assemble -x signArchives"
+- "./gradlew assemble"
 script:
 - "./gradlew check"
 before_cache:
@@ -29,14 +29,21 @@ cache:
   - "$HOME/.gradle/wrapper/"
 after_success:
 - "./gradlew test jacocoTestReport coveralls"
-- test ${TRAVIS_BRANCH} != 'master' && test ${TRAVIS_JDK_VERSION} == 'oraclejdk8' && "./gradlew uploadArchives" # Disable master for now, it fails due to ip address issues
-#Disable for now, upload archives failes because of IP address changes - "test ${TRAVIS_PULL_REQUEST} != 'true' && test ${TRAVIS_BRANCH} = 'master' && ./gradlew closeAndReleaseRepository"
-env:
-  global:
-  - stan_version=v0.15.1
-  - stan_path=$TRAVIS_BUILD_DIR/stan/nats-streaming-server
-  - GPG_KEYRING_FILE=.travis/nats.travis.gpg
-  - secure: T/D5pMoZiDU6O3gU70D/qUJIvggI412y4nCw7WhC4JKDFMNIAa2enPfCrm9Np8sjuT2CF8hW4+SR7Adv5yZnMVIkCos1vmWjuz/yH/3+TRVANMr4fzUS3KsBCfl421qRxbtBt8frlOSdOpAYsqBscel9Jsvx22UVNV8qspXkYhjnQmX8mpgXj8yz1l6Y82htda/hB4dozgPcTMoLpT21yPwHlU8NdiTs1Bsj1JL7vz/PEzuNNylYLWoa2J6mvn1i3B/FjtgZwCeYydvel36QrFRoiK+Blo0iz1vOKnt3vAAQ6z5fkRGNjqxxiYzEGOP34uRvoSmJv6cHpqVV6gwQJJ+ntVZqrkjtdUqyffWE0wp0Pzf9c0fPaqBt/BtXdL0051+fgVpX8apkEM6amcF12S41i/XmhtLK452fsidfOEsdAV7OCVEJeahQPy5zX6CCUM/VqZoWaVmjC6TEW+Ai84tO3QkPLV1BChN46LBY+qapLMpPsmWyn0+pvmBtqiHCfDjhSuDQVwWsPKM83ealpFEtqmfOgKDc+FIAtLWcW8k7RUImQz3Qe325PQ/0r+voiuV7GQTI+68GkX5IyMwa8nXVOVxROy67IatIzYC6BQsoLb9YDCHuQq6j3AVe3np0OQ4MT8daCQZoL4sTh3lKR85u0gPLHhv9ybzAqAWvUrs=
-  - secure: qJcqsoZNwQec+pMYWiCS3eucerDBCiRlh4uXm81523QHTYjYxd+paK+XYSFoG+5goSx7eTbvlDsXz7ctBGU836r1GgOzheki8WMLwYhrdWKJH0OrHVlH+6UsQvQ3Y/UkWBCWvM3V+zeJ8phUAMo1W3OYZK9fYe8TXTlW725/UH+dETfpyCGbSH1KFIKp9bgO9t42iy34Ruhx/HRsaCtpdsCVaOKEo7WyEIuZXOo7RbeJKieGPig5o+mDeiOti8WCBpsHL3EmaCbbqxrPIKGjfn4RksS/h0gr1kHVc52H7GaB8YLF23Whpgq5EbBZ6b4HcNxqS8YF5dkdYFuqq/8XNu4F3JVZhVEsrbRwwSmi7LolFZtV5aHFv2pEyr99FfdPfhlzJVXD+chOyfcaeyx3bOnFsl/Q/SlNf/e6aCxsgFD1PUZHpj2svkNKNWagwRVGmfEEal6pWl3MPxIstevZK4c1Ot7ExSKGuTgHYVlUd+J/Y5A66fKU5a7dRtCQJQ5zxm0vl0mWONFCZECpULpBuXS2ajAd2ajy6IVXEiZeUvyfNTmk/9KCUD5WwxSaRmh5SK4tf32O5TaEXNpyT4HJHW7MqooSpr7jvRm7kjmdMU1Smzc83NI0/WePw7wcud8qTGNlIMewJlTCP2ol8N6wCnSKJCP8bQDxDmG5dFFMFCg=
-  - secure: egT874iZk81lBqbklIGxqu9QzPZ1twXiz4MoXmmdZi3Oow2YCWLI/aQQgcDoUDNIsYYTiqC29l464Hs28E0yJNMEi6ZB/sG/H/lQgXnDPQY1IsrOpV+0dS1j7tcWaybLFR7XY4yP66xny+nEHcgCysmv35+54tDze0c4V/dvlyALBGR0+xVBLvK1t4L9iarKjxjuwHwo1Xw4cRHzlIZnuJeVQJK3H7ykjKBy6IrbUNmR/Zyjs1WJRo1mlcICIu3Q7c/5Uocx+vwOQwyD5Mfw3sZzjXwfykQGP9A3Om/ZQ6WxSJ2B30B6V2v+YXUtsIO7cqMFYDT+moTuG4ffIQOX9wmCad56XTLOanqHjNQbaKU5ygzXHtVne1GEq6nz+X3QpZExSIp3qlKnfi+tVFfeBtGYPU2uSkmdsvaOr0HVYaHtcvSkemds4vox3jZ0sRn3VsZH8ftM/GT9kGD47NKwj1VeFuXhtDZsChYzz/tv0F5wSOAX1kfku8wmodzxyFeFqw13bfbD9nq6pM7LSZi/5sG6meONsAeRhZsKx/d1gaAVbnx8XTV2aNt3yhUnIMzL5zC3Qy3eRgESR+fax5bimbav1jYMaEfrN9QWBWPZ8LBJhto+9u3T+wPFeKY4a0h4ZKoIbGCVDlExzqrl1Hh2c5HwjM9L7BXaEBviinZoGIQ=
-  - secure: 01oTIjzhriCRiK1CNAkd7KaRSclPMdHcaWhQkrYgwYcboCeUrs0LIVPYts+gB+FE3MsJyRwMfrug4qM/gJQBrHbddYpleZFUPQXZ1rWKpkzzxFP1PD51886k2Cumxd3KvrjdUj/NZ7UITVQ9SbI+dlJFaAM5mLXLBWwk7NVtDKZEnIyxFC3rsexbS4NwPRiU1muX/wPhaMjtH8bHdnqC+6B6aZ+/165n7MhfF8c+ABqB4XmLMPcNmp5oiX/zGDng/17inNquZywCaJkm0Qq+98SwXrICeTVhS4TV6hT8orYFKBynQLMMCCG1EKVRydTkDw6OZJt16aqJKWhuW1RNCcpCU1DiEPWQGBirGuGcuFdpmg9f8t6dtXqrXK1IY4zxy5iyF2VjXeLGWZEtoTryLQnaKggbWzDZAimGtdDnyAK5TBp8g+ODsK/ArsEVQC4d19nL0cXTX+DxvVfeq+QPUH00k2+Qz9FJ4Kv1a8cGnTa0miC0oETZe5KwtivdHoQtr8698b7FxgW/t1jp3QLfoxpBE6omJMusgOvY/gmmS1ZvZ3Kn2sNPEcEUDX3+SIWEhXJ3jTo+e4Sf25pyi/VNLV5Uocu1AxT1/IQ0SKho316hV5jsqy3JxVv3I55yDIDHNupLJ/ST9/zRCAEG0wJOTUMEjgLhJS4DSNDrb/uCLxI=
+- |
+  if [ "${TRAVIS_BRANCH}" == "master" ] && [ -z "${TRAVIS_TAG}" ] && [ "${TRAVIS_JDK_VERSION}" == "oraclejdk8" ]; then
+    ./gradlew -i publishToSonatype
+  fi
+- |
+  if [ "${TRAVIS_BRANCH}" == "${TRAVIS_TAG}" ] && [ ! -z "${TRAVIS_TAG}" ] && [ "${TRAVIS_JDK_VERSION}" == "oraclejdk8" ]; then
+    ./gradlew -i sign publishToSonatype closeAndReleaseRepository
+  fi
+
+  env:
+    global:
+    - stan_version=v0.15.1
+    - stan_path=$TRAVIS_BUILD_DIR/stan/nats-streaming-server
+    - GPG_KEYRING_FILE=.travis/nats.travis.gpg
+    - secure: T/D5pMoZiDU6O3gU70D/qUJIvggI412y4nCw7WhC4JKDFMNIAa2enPfCrm9Np8sjuT2CF8hW4+SR7Adv5yZnMVIkCos1vmWjuz/yH/3+TRVANMr4fzUS3KsBCfl421qRxbtBt8frlOSdOpAYsqBscel9Jsvx22UVNV8qspXkYhjnQmX8mpgXj8yz1l6Y82htda/hB4dozgPcTMoLpT21yPwHlU8NdiTs1Bsj1JL7vz/PEzuNNylYLWoa2J6mvn1i3B/FjtgZwCeYydvel36QrFRoiK+Blo0iz1vOKnt3vAAQ6z5fkRGNjqxxiYzEGOP34uRvoSmJv6cHpqVV6gwQJJ+ntVZqrkjtdUqyffWE0wp0Pzf9c0fPaqBt/BtXdL0051+fgVpX8apkEM6amcF12S41i/XmhtLK452fsidfOEsdAV7OCVEJeahQPy5zX6CCUM/VqZoWaVmjC6TEW+Ai84tO3QkPLV1BChN46LBY+qapLMpPsmWyn0+pvmBtqiHCfDjhSuDQVwWsPKM83ealpFEtqmfOgKDc+FIAtLWcW8k7RUImQz3Qe325PQ/0r+voiuV7GQTI+68GkX5IyMwa8nXVOVxROy67IatIzYC6BQsoLb9YDCHuQq6j3AVe3np0OQ4MT8daCQZoL4sTh3lKR85u0gPLHhv9ybzAqAWvUrs=
+    - secure: qJcqsoZNwQec+pMYWiCS3eucerDBCiRlh4uXm81523QHTYjYxd+paK+XYSFoG+5goSx7eTbvlDsXz7ctBGU836r1GgOzheki8WMLwYhrdWKJH0OrHVlH+6UsQvQ3Y/UkWBCWvM3V+zeJ8phUAMo1W3OYZK9fYe8TXTlW725/UH+dETfpyCGbSH1KFIKp9bgO9t42iy34Ruhx/HRsaCtpdsCVaOKEo7WyEIuZXOo7RbeJKieGPig5o+mDeiOti8WCBpsHL3EmaCbbqxrPIKGjfn4RksS/h0gr1kHVc52H7GaB8YLF23Whpgq5EbBZ6b4HcNxqS8YF5dkdYFuqq/8XNu4F3JVZhVEsrbRwwSmi7LolFZtV5aHFv2pEyr99FfdPfhlzJVXD+chOyfcaeyx3bOnFsl/Q/SlNf/e6aCxsgFD1PUZHpj2svkNKNWagwRVGmfEEal6pWl3MPxIstevZK4c1Ot7ExSKGuTgHYVlUd+J/Y5A66fKU5a7dRtCQJQ5zxm0vl0mWONFCZECpULpBuXS2ajAd2ajy6IVXEiZeUvyfNTmk/9KCUD5WwxSaRmh5SK4tf32O5TaEXNpyT4HJHW7MqooSpr7jvRm7kjmdMU1Smzc83NI0/WePw7wcud8qTGNlIMewJlTCP2ol8N6wCnSKJCP8bQDxDmG5dFFMFCg=
+    - secure: egT874iZk81lBqbklIGxqu9QzPZ1twXiz4MoXmmdZi3Oow2YCWLI/aQQgcDoUDNIsYYTiqC29l464Hs28E0yJNMEi6ZB/sG/H/lQgXnDPQY1IsrOpV+0dS1j7tcWaybLFR7XY4yP66xny+nEHcgCysmv35+54tDze0c4V/dvlyALBGR0+xVBLvK1t4L9iarKjxjuwHwo1Xw4cRHzlIZnuJeVQJK3H7ykjKBy6IrbUNmR/Zyjs1WJRo1mlcICIu3Q7c/5Uocx+vwOQwyD5Mfw3sZzjXwfykQGP9A3Om/ZQ6WxSJ2B30B6V2v+YXUtsIO7cqMFYDT+moTuG4ffIQOX9wmCad56XTLOanqHjNQbaKU5ygzXHtVne1GEq6nz+X3QpZExSIp3qlKnfi+tVFfeBtGYPU2uSkmdsvaOr0HVYaHtcvSkemds4vox3jZ0sRn3VsZH8ftM/GT9kGD47NKwj1VeFuXhtDZsChYzz/tv0F5wSOAX1kfku8wmodzxyFeFqw13bfbD9nq6pM7LSZi/5sG6meONsAeRhZsKx/d1gaAVbnx8XTV2aNt3yhUnIMzL5zC3Qy3eRgESR+fax5bimbav1jYMaEfrN9QWBWPZ8LBJhto+9u3T+wPFeKY4a0h4ZKoIbGCVDlExzqrl1Hh2c5HwjM9L7BXaEBviinZoGIQ=
+    - secure: 01oTIjzhriCRiK1CNAkd7KaRSclPMdHcaWhQkrYgwYcboCeUrs0LIVPYts+gB+FE3MsJyRwMfrug4qM/gJQBrHbddYpleZFUPQXZ1rWKpkzzxFP1PD51886k2Cumxd3KvrjdUj/NZ7UITVQ9SbI+dlJFaAM5mLXLBWwk7NVtDKZEnIyxFC3rsexbS4NwPRiU1muX/wPhaMjtH8bHdnqC+6B6aZ+/165n7MhfF8c+ABqB4XmLMPcNmp5oiX/zGDng/17inNquZywCaJkm0Qq+98SwXrICeTVhS4TV6hT8orYFKBynQLMMCCG1EKVRydTkDw6OZJt16aqJKWhuW1RNCcpCU1DiEPWQGBirGuGcuFdpmg9f8t6dtXqrXK1IY4zxy5iyF2VjXeLGWZEtoTryLQnaKggbWzDZAimGtdDnyAK5TBp8g+ODsK/ArsEVQC4d19nL0cXTX+DxvVfeq+QPUH00k2+Qz9FJ4Kv1a8cGnTa0miC0oETZe5KwtivdHoQtr8698b7FxgW/t1jp3QLfoxpBE6omJMusgOvY/gmmS1ZvZ3Kn2sNPEcEUDX3+SIWEhXJ3jTo+e4Sf25pyi/VNLV5Uocu1AxT1/IQ0SKho316hV5jsqy3JxVv3I55yDIDHNupLJ/ST9/zRCAEG0wJOTUMEjgLhJS4DSNDrb/uCLxI=
