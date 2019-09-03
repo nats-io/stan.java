@@ -17,7 +17,7 @@ before_install:
 - openssl aes-256-cbc -K $encrypted_4d67c1484586_key -iv $encrypted_4d67c1484586_iv
   -in .travis/nats.travis.gpg.enc -out .travis/nats.travis.gpg -d
 install:
-- "./gradlew assemble"
+- "./gradlew assemble -x signArchives"
 script:
 - "./gradlew check"
 before_cache:
