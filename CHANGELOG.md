@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 2.2.3
+
+* [Fixed] - #141 - thread leak due to null pointer
+
 ## Version 2.2.2
 
 * [Changed] - small fixes to automate the build
