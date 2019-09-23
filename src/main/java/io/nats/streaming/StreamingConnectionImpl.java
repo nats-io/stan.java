@@ -350,11 +350,13 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     pingTimer.cancel();
                 }
 
-                for (AckClosure ac : this.pubAckMap.values()) {
-                    ac.ackTask.cancel();
+                if (this.pubAckMap != null) {
+                    for (AckClosure ac : this.pubAckMap.values()) {
+                        ac.ackTask.cancel();
 
-                    if (!ac.ch.isEmpty()) {
-                        ac.ch.take();
+                        if (!ac.ch.isEmpty()) {
+                            ac.ch.take();
+                        }
                     }
                 }
                 ackTimer.cancel();
