@@ -3,6 +3,7 @@
 ## Version 2.2.3
 
 * [Fixed] - #141 - thread leak due to null pointer
+* [Fixed] - #136 - added a way to block data being stored for every ack
 
 ## Version 2.2.2
 

@@ -24,7 +24,6 @@ public interface AckHandler {
      * encountered.
      * 
      * onAck with a message is now called, with the default behavior of calling this version.
-     * Not deprecated yet to avoid multiple warnings, will deprecate in the future.
      * 
      * @param nuid the message NUID
      * @param ex   any exception that was encountered
@@ -47,5 +46,18 @@ public interface AckHandler {
      */
     default void onAck(String nuid, String subject, byte[] data, Exception ex) {
         this.onAck(nuid, ex);
+    }
+
+    /**
+     * Tells the connection if it should hold the data from a publish and send it to the ack handler.
+     * 
+     * Added as a default in 2.2.3 to allow apps to stop data retention in the connection. The default
+     * version returns true. Override and return false to always receive null in the onAck and prevent
+     * message accumulation when large acks in flight are used.
+     * 
+     * @return true to include data with the onAck callback, false to include null
+     */
+    default boolean includeDataWithAck() {
+        return true;
     }
 }
