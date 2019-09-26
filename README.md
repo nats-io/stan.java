@@ -12,7 +12,7 @@ A [Java](http://java.com) client for the [NATS streaming platform](https://nats.
 
 ## A Note on Versions
 
-This is version 2.2.2 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts. For 2.1.6 we are renaming this repo to stan.java.
+This is version 2.2.3 of the Java NATS streaming library. This version is a port to version 2.x of the Java NATS library and contains breaking changes due to the way the underlying library handles exceptions, especially timeouts. For 2.1.6 we are renaming this repo to stan.java.
 
 As of 2.1.6 the NATS server is undergoing a rename, as are the NATS repositories.
 
@@ -38,7 +38,7 @@ The nats streaming client requires two jar files to run, the java nats library a
 
 You can download the latest NATS client jar at [https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.6.0/jnats-2.6.0.jar](https://search.maven.org/remotecontent?filepath=io/nats/jnats/2.6.0/jnats-2.6.0.jar).
 
-You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.2/java-nats-streaming-2.2.2.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.2/java-nats-streaming-2.2.2.jar).
+You can download the latest java nats streaming jar at [https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.3/java-nats-streaming-2.2.3.jar](https://search.maven.org/remotecontent?filepath=io/nats/java-nats-streaming/2.2.3/java-nats-streaming-2.2.3.jar).
 
 ### Using Gradle
 
@@ -46,7 +46,7 @@ The NATS client is available in the Maven central repository, and can be importe
 
 ```groovy
 dependencies {
-    implementation 'io.nats:java-nats-streaming:2.2.2'
+    implementation 'io.nats:java-nats-streaming:2.2.3'
 }
 ```
 
@@ -72,7 +72,7 @@ The NATS client is available on the Maven central repository, and can be importe
 <dependency>
     <groupId>io.nats</groupId>
     <artifactId>java-nats-streaming</artifactId>
-    <version>2.2.2</version>
+    <version>2.2.3</version>
 </dependency>
 ```
 

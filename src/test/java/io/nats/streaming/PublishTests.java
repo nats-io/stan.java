@@ -16,6 +16,7 @@ package io.nats.streaming;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -24,6 +25,8 @@ import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
@@ -32,7 +35,6 @@ import io.nats.client.Connection.Status;
 public class PublishTests {
     private static final String clusterName = "test-cluster";
     private static final String clientName = "me";
-
 
     @Test
     public void testBasicPublish() throws Exception {
@@ -180,6 +182,73 @@ public class PublishTests {
                 assertFalse("Expected non-empty guid to be returned.", guid[0].isEmpty());
                 assertTrue("Did not receive our ack callback with a timeout err", latch.await(2, TimeUnit.SECONDS));
             } // will throw on close
+        }
+    }
+
+    @Test
+    public void testBasicPublishAsyncWithData() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<String> cbguid = new AtomicReference<>();
+        final AtomicInteger dataReceived = new AtomicInteger();
+
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                AckHandler acb = new AckHandler() {
+                        public void onAck(String nuid, Exception ex) {
+                            assertTrue(ex instanceof TimeoutException);
+                        };
+                        public void onAck(String nuid, String s, byte[] d, Exception ex) {
+                            cbguid.set(nuid);
+                            dataReceived.getAndAdd(d.length);
+                            latch.countDown();
+                        };
+                };
+
+                byte[] data = "Hello World!".getBytes();
+                String pubguid = sc.publish("foo", data, acb);
+                assertFalse("Expected non-empty guid to be returned", pubguid.isEmpty());
+
+                assertTrue("Did not receive our ack callback", latch.await(5, TimeUnit.SECONDS));
+                assertEquals("Expected a matching guid in ack callback", pubguid, cbguid.get());
+                assertEquals("expected data to match", data.length, dataReceived.get());
+            }
+        }
+    }
+
+    @Test
+    public void testBasicPublishAsyncWithoutData() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<String> cbguid = new AtomicReference<>();
+        final AtomicInteger dataReceived = new AtomicInteger();
+
+        try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
+            Options options = new Options.Builder().natsUrl(srv.getURI()).build();
+            try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
+                AckHandler acb = new AckHandler() {
+                        public void onAck(String nuid, Exception ex) {
+                            assertTrue(ex instanceof TimeoutException);
+                        };
+                        public void onAck(String nuid, String s, byte[] d, Exception ex) {
+                            cbguid.set(nuid);
+                            if (d != null) {
+                                dataReceived.getAndAdd(d.length);
+                            }
+                            latch.countDown();
+                        };
+                        public boolean includeDataWithAck() {
+                            return false;
+                        }
+                };
+
+                byte[] data = "Hello World!".getBytes();
+                String pubguid = sc.publish("foo", data, acb);
+                assertFalse("Expected non-empty guid to be returned", pubguid.isEmpty());
+
+                assertTrue("Did not receive our ack callback", latch.await(5, TimeUnit.SECONDS));
+                assertEquals("Expected a matching guid in ack callback", pubguid, cbguid.get());
+                assertEquals("expected data to match", 0, dataReceived.get());
+            }
         }
     }
 }

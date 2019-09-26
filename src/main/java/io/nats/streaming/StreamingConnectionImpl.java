@@ -350,11 +350,13 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     pingTimer.cancel();
                 }
 
-                for (AckClosure ac : this.pubAckMap.values()) {
-                    ac.ackTask.cancel();
+                if (this.pubAckMap != null) {
+                    for (AckClosure ac : this.pubAckMap.values()) {
+                        ac.ackTask.cancel();
 
-                    if (!ac.ch.isEmpty()) {
-                        ac.ch.take();
+                        if (!ac.ch.isEmpty()) {
+                            ac.ch.take();
+                        }
                     }
                 }
                 ackTimer.cancel();
@@ -464,7 +466,7 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
         String ackSubject;
         Duration ackTimeout = opts.getAckTimeout();
         BlockingQueue<PubAck> pac;
-        final AckClosure a= new AckClosure(ah, subject, (ah != null) ? data : null, ch);
+        final AckClosure a= new AckClosure(ah, subject, (ah != null && ah.includeDataWithAck()) ? data : null, ch);
         final PubMsg pe;
         String guid;
         byte[] bytes;
