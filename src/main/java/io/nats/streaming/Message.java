@@ -195,6 +195,10 @@ public class Message {
         return crc32;
     }
 
+    public String getAckInbox() {
+        return sub.getAckInbox();
+    }
+
     /**
      * Acknowledges the message to the streaming cluster.
      * 
