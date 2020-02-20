@@ -14,7 +14,7 @@ before_script:
 - unzip tmp.zip
 - mv nats-streaming-server-v0.16.0-linux-amd64 stan
 before_install:
-- openssl aes-256-cbc -K $encrypted_4d67c1484586_key -iv $encrypted_4d67c1484586_iv
+- openssl aes-256-cbc -K $encrypted_baa288abf7f7_key -iv $encrypted_baa288abf7f7_iv
   -in .travis/nats.travis.gpg.enc -out .travis/nats.travis.gpg -d
 install:
 - "./gradlew assemble"
