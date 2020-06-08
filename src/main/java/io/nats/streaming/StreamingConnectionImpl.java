@@ -354,7 +354,8 @@ class StreamingConnectionImpl implements StreamingConnection, io.nats.client.Mes
                     for (AckClosure ac : this.pubAckMap.values()) {
                         ac.ackTask.cancel();
 
-                        if (!ac.ch.isEmpty()) {
+                        // Note: Providing an Ack Handler when publishing to STAN (on Android) can result in NPEs during some closing scenarios
+                        if (ac.ch != null && !ac.ch.isEmpty()) {
                             ac.ch.take();
                         }
                     }
