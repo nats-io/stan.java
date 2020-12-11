@@ -218,7 +218,7 @@ public class RedeliveryTests {
     }
 
     @Test
-    public void testRedeliveredFlag() throws Exception {
+    public void testRedeliveredFlagAndRedeliveryCount() throws Exception {
         try (NatsStreamingTestServer srv = new NatsStreamingTestServer(clusterName, false)) {
             Options options = new Options.Builder().natsUrl(srv.getURI()).build();
             try (StreamingConnection sc = NatsStreaming.connect(clusterName, clientName, options)) {
@@ -271,6 +271,10 @@ public class RedeliveryTests {
                     for (Message msg : msgs.values()) {
                         if ((msg.getSequence() % 2 == 0) && !msg.isRedelivered()) {
                             fail("Expected a redelivered flag to be set on msg: "
+                                    + msg.getSequence());
+                        }
+                        if ((msg.getSequence() % 2 == 0) && msg.getRedeliveryCount() <= 0) {
+                            fail("Expected a redelivery count to be higher than 0 on msg: "
                                     + msg.getSequence());
                         }
                     }

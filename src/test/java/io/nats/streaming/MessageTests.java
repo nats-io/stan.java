@@ -49,19 +49,21 @@ public class MessageTests {
         final byte[] data = "Hello World".getBytes();
         final long sequence = 1234567890;
         final boolean redelivered = true;
+        final int redeliveryCount = 3;
         final int crc32 = 9898989;
 
         long timestamp = System.nanoTime();
 
         MsgProto msgp = MsgProto.newBuilder().setSubject(subject).setReply(reply)
                 .setData(ByteString.copyFrom(data)).setTimestamp(timestamp).setSequence(sequence)
-                .setRedelivered(redelivered).setCRC32(crc32).build();
+                .setRedelivered(redelivered).setRedeliveryCount(redeliveryCount).setCRC32(crc32).build();
         Message msg = new Message(msgp);
         assertEquals(subject, msg.getSubject());
         assertEquals(reply, msg.getReplyTo());
         assertArrayEquals(data, msg.getData());
         assertEquals(sequence, msg.getSequence());
         assertEquals(redelivered, msg.isRedelivered());
+        assertEquals(redeliveryCount, msg.getRedeliveryCount());
         assertEquals(crc32, msg.getCrc32());
         assertNotNull(msg.getInstant());
     }
@@ -89,13 +91,14 @@ public class MessageTests {
         final byte[] data = "Hello World".getBytes();
         final long sequence = 1234567890;
         final boolean redelivered = true;
+        final int redeliveryCount = 3;
         final int crc32 = 9898989;
 
         long timestamp = System.nanoTime();
 
         MsgProto msgp = MsgProto.newBuilder().setSubject(subject).setReply(reply)
                 .setData(ByteString.copyFrom(data)).setTimestamp(timestamp).setSequence(sequence)
-                .setRedelivered(redelivered).setCRC32(crc32).build();
+                .setRedelivered(redelivered).setRedeliveryCount(redeliveryCount).setCRC32(crc32).build();
         Message msg = new Message(msgp);
 
         boolean exThrown = false;

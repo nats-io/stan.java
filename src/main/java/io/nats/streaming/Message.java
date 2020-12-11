@@ -31,6 +31,7 @@ public class Message {
     private long sequence;
     private long timestamp;
     private boolean redelivered;
+    private int redeliveryCount;
     private int crc32;
     private boolean immutable;
 
@@ -46,6 +47,7 @@ public class Message {
         this.sequence = msgp.getSequence();
         this.timestamp = msgp.getTimestamp();
         this.redelivered = msgp.getRedelivered();
+        this.redeliveryCount = msgp.getRedeliveryCount();
         this.crc32 = msgp.getCRC32();
         immutable = true;
     }
@@ -187,6 +189,15 @@ public class Message {
     }
 
     /**
+     * Returns number of times this message has been redelivered to this client's connection.
+     *
+     * @return number of times this message was redelivered
+     */
+    public int getRedeliveryCount() {
+        return redeliveryCount;
+    }
+
+    /**
      * Returns the CRC32 checksum for the message.
      * 
      * @return the CRC32 checksum
@@ -241,8 +252,8 @@ public class Message {
         StringBuilder sb = new StringBuilder();
         // Date theDate = new Date(TimeUnit.NANOSECONDS.toMillis(getTimestamp()));
         sb.append(String.format(
-                "{Timestamp=%d;Sequence=%d;Redelivered=%b;Subject=%s;Reply=%s;Payload=<",
-                getTimestamp(), getSequence(), isRedelivered(), getSubject(), getReplyTo()));
+                "{Timestamp=%d;Sequence=%d;Redelivered=%b;RedeliveryCount=%d;Subject=%s;Reply=%s;Payload=<",
+                getTimestamp(), getSequence(), isRedelivered(), getRedeliveryCount(), getSubject(), getReplyTo()));
         // dateFormat.format(theDate), getSequence(), isRedelivered(), getSubject(), getReplyTo()));
 
         for (int i = 0; i < maxBytes && i < len; i++) {
